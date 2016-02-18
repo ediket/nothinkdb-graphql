@@ -1,1 +1,1 @@
-export * from './arrayConnection';
+export * from './connection';

@@ -13,11 +13,11 @@ import {
   edgeOffsetsToReturn,
   dataToEdge,
   connectionArgsToOffsets,
-} from '../arrayConnection';
+} from '../connection';
 
 const TABLE = 'arrayConnectionTest';
 
-describe('arrayConnection', () => {
+describe('connection', () => {
   let table;
   let connection;
   let orderedQuery;
