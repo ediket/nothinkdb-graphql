@@ -1,0 +1,49 @@
+{
+  "name": "nothinkdb-graphql",
+  "version": "0.0.0",
+  "description": "Graphql & Relay for rethinkdb via nothinkdb",
+  "main": "lib",
+  "files": [
+    "lib"
+  ],
+  "scripts": {
+    "test": "mocha --compilers js:babel/register --timeout 20000 ./src/**/__tests__/*-test.js",
+    "build": "babel --ignore *-test.js -d lib src",
+    "clean": "rimraf lib",
+    "lint": "eslint src",
+    "prepublish": "npm run clean && npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/ironhee/nothinkdb-graphql.git"
+  },
+  "keywords": [
+    "rethinkdb",
+    "nothinkdb",
+    "graphql",
+    "relay"
+  ],
+  "author": "ironhee <leechulhee95@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ironhee/nothinkdb-graphql/issues"
+  },
+  "homepage": "https://github.com/ironhee/nothinkdb-graphql#readme",
+  "devDependencies": {
+    "babel": "^5.8.35",
+    "babel-eslint": "^4.1.7",
+    "chai": "^3.4.1",
+    "eslint": "^1.10.3",
+    "eslint-config-airbnb": "^0.1.0",
+    "mocha": "^2.4.5",
+    "rimraf": "^2.5.1"
+  },
+  "dependencies": {
+    "graphql": "^0.4.17",
+    "graphql-relay": "^0.3.6",
+    "joi": "^8.0.1",
+    "lodash": "^4.4.0",
+    "nothinkdb": "^0.3.0",
+    "rethinkdb": "^2.2.1"
+  }
+}
