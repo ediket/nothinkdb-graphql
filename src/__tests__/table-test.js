@@ -54,26 +54,6 @@ describe('table', () => {
           string: fooFields.string,
         },
       }));
-    });
-
-    it('should work', async () => {
-      const fooTable = new Table({
-        table: 'foo',
-        schema: () => ({
-          any: Joi.any(),
-          required: Joi.any().required(),
-          description: Joi.any().description('sample description'),
-          string: Joi.string(),
-          float: Joi.number(),
-          int: Joi.number().integer(),
-          boolean: Joi.boolean(),
-          array: Joi.array().items(Joi.string()),
-          object: Joi.object().keys({
-            string: Joi.string(),
-          }),
-          enum: Joi.any().valid(['a']),
-        }),
-      });
 
       const sampleData = {
         any: 'any',
@@ -92,7 +72,7 @@ describe('table', () => {
 
       const Foo = new GraphQLObjectType({
         name: 'Foo',
-        fields: getGraphQLFieldsFromTable(fooTable),
+        fields: fooFields,
       });
 
       const Query = new GraphQLObjectType({
