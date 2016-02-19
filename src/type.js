@@ -1,7 +1,7 @@
 import { GraphQLScalarType, GraphQLError } from 'graphql';
 import assert from 'assert';
 import _ from 'lodash';
-import Joi from 'Joi';
+import Joi from 'joi';
 
 export class GraphQLJoiType extends GraphQLScalarType {
   constructor(options = {}) {
