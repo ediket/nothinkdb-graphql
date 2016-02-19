@@ -2,7 +2,7 @@ import { GraphQLScalarType, GraphQLError } from 'graphql';
 import { Kind } from 'graphql/language';
 import assert from 'assert';
 import _ from 'lodash';
-import Joi from 'Joi';
+import Joi from 'joi';
 
 export function joiToStringScalaType(name, schema) {
   assert(!_.isEmpty(name), 'required name argument');
