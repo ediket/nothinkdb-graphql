@@ -131,5 +131,27 @@ describe('table', () => {
       expect(result.errors).to.be.empty;
       expect(result.data.foo).deep.equal(sampleData);
     });
+
+    it('should get graphql fields with custom Joi type', async () => {
+      const basicSchema = {
+        someStringField: Joi.string(),
+      };
+      const customSchema = {
+        email: Joi.string().email(),
+        username: Joi.string().min(3).max(5),
+      };
+      const fooTable = new Table({
+        table: 'foo',
+        schema: () => ({
+          ...basicSchema,
+          ...customSchema,
+        }),
+      });
+
+      const fooFields = getGraphQLFieldsFromTable(fooTable, customSchema);
+
+      expect(fooFields.someStringField.type).to.equal(GraphQLString);
+      // expect(fooFields.email.type).to.equal(GraphQLString);
+    });
   });
 });

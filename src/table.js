@@ -9,15 +9,43 @@ import {
   GraphQLNonNull,
   GraphQLList,
 } from 'graphql';
+import { GraphQLJoiType } from './type';
+
+function isJoiCollection(schema) {
+  return _.isObject(schema) && !_.has(schema, 'isJoi');
+}
+
+function mapSchema(schema, iteratee) {
+  return _.mapValues(schema, (fieldSchema, fieldKey) => iteratee(fieldSchema, fieldKey));
+}
 
 export function getGraphQLFieldsFromTable(table) {
   const schema = table.schema();
   return getGraphQLfieldsFromSchema(schema);
 }
 
+export function getGraphQLScalarFieldsFromSchema(schema, key) {
+  if (isJoiCollection(schema)) {
+    return mapSchema(schema, getGraphQLScalarFieldsFromSchema);
+  }
+
+  const {
+    _description: description,
+  } = schema;
+  const GraphQLType = new GraphQLJoiType({
+    name: key,
+    schema,
+  });
+
+  return {
+    type: GraphQLType,
+    description,
+  };
+}
+
 export function getGraphQLfieldsFromSchema(schema, key) {
-  if (_.isObject(schema) && !_.has(schema, 'isJoi')) {
-    return _.mapValues(schema, (fieldSchema, fieldKey) => getGraphQLfieldsFromSchema(fieldSchema, fieldKey));
+  if (isJoiCollection(schema)) {
+    return mapSchema(schema, getGraphQLfieldsFromSchema);
   }
 
   let GraphQLType;

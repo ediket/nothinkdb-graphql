@@ -1,12 +1,29 @@
-import { GraphQLScalarType, GraphQLError } from 'graphql';
+import {
+  GraphQLObjectType,
+  GraphQLString,
+  GraphQLInt,
+  GraphQLFloat,
+  GraphQLBoolean,
+  GraphQLScalarType,
+  GraphQLError,
+} from 'graphql';
 import { Kind } from 'graphql/language';
 import assert from 'assert';
 import _ from 'lodash';
 import Joi from 'joi';
 
-export function joiToStringScalaType(name, schema) {
+
+function isNotJoiObject(schema) {
+  return (_.isObject(schema) && !_.has(schema, 'isJoi'));
+}
+
+function mapSchema(schema, iteratee) {
+  return _.mapValues(schema, (fieldSchema, fieldKey) => iteratee(fieldSchema, fieldKey));
+}
+
+export function joiToGraphQLScalar(name, schema) {
   assert(!_.isEmpty(name), 'required name argument');
-  assert(schema.isJoi, 'joi schema required');
+  assert(schema.isJoi, 'joi schema r equired');
 
   return new GraphQLScalarType({
     name,
@@ -29,4 +46,61 @@ export function joiToStringScalaType(name, schema) {
       return value;
     },
   });
+}
+
+export function joiToBasicScalar(schema) {
+  if (isNotJoiObject(schema)) {
+    return mapSchema(schema, joiToBasicScalar);
+  }
+  let GraphQLType;
+  const {
+    _type: type,
+    _description: description,
+    _tests: tests,
+  } = schema;
+
+  switch (type) {
+  case 'boolean':
+    GraphQLType = GraphQLBoolean;
+    break;
+  case 'number':
+    GraphQLType = _.find(tests, { name: 'integer' }) ? GraphQLInt : GraphQLFloat;
+    break;
+  case 'string':
+  default:
+    GraphQLType = GraphQLString;
+    break;
+  }
+
+  return {
+    type: GraphQLType,
+    description,
+  };
+}
+
+export function joiToGraphQLObjectType(schema, name) {
+  if (isNotJoiObject(schema)) {
+    return mapSchema(schema, joiToGraphQLObjectType);
+  }
+
+  if (!_.isObject(schema) && schema.isJoi) {
+    return joiToBasicScalar(schema);
+  }
+
+  const {
+    _inner: inner,
+    _description: description,
+  } = schema;
+
+  const GraphQLType = new GraphQLObjectType({
+    name,
+    fields: _.reduce(inner.children, (memo, child) => {
+      return { ...memo, [child.key]: joiToGraphQLObjectType(child.schema, child.key) };
+    }, {}),
+  });
+
+  return {
+    type: GraphQLType,
+    description,
+  };
 }
