@@ -56,7 +56,17 @@ export function getGraphQLfieldsFromSchema(schema, key) {
     _tests: tests,
     _inner: inner,
     _valids: valids,
+    _meta: meta,
   } = schema;
+
+  if (
+    _.chain(meta)
+      .find(item => item.isScalar)
+      .get('isScalar')
+      .value()
+    ) {
+    return getGraphQLScalarFieldsFromSchema(schema, key);
+  }
 
   switch (type) {
   case 'object':

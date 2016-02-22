@@ -1,4 +1,5 @@
 import { expect } from 'chai';
+import _ from 'lodash';
 import {
   graphql,
   GraphQLSchema,
@@ -15,6 +16,9 @@ import { Table } from 'nothinkdb';
 import {
   getGraphQLFieldsFromTable,
 } from '../table';
+import {
+  GraphQLJoiType,
+} from '../type';
 
 
 describe('table', () => {
@@ -151,7 +155,36 @@ describe('table', () => {
       const fooFields = getGraphQLFieldsFromTable(fooTable, customSchema);
 
       expect(fooFields.someStringField.type).to.equal(GraphQLString);
-      // expect(fooFields.email.type).to.equal(GraphQLString);
+    });
+
+    it('should get graphql fields with custom Joi type', async () => {
+      const schema = {
+        id: Joi.string(),
+        email: Joi.string().email().meta({ isScalar: true }),
+        username: Joi.string().min(3).max(5).meta({ isScalar: true }),
+      };
+
+      const fooTable = new Table({
+        table: 'foo',
+        schema: () => schema,
+      });
+
+      const fooFields = getGraphQLFieldsFromTable(fooTable);
+
+      expect(fooFields.id.type).to.equal(GraphQLString);
+      expect(true).to.be.true;
+      expect(JSON.stringify(fooFields.email.type)).to.equal(
+        JSON.stringify(new GraphQLJoiType({
+          name: 'email',
+          schema: schema.email,
+        }))
+      );
+      expect(JSON.stringify(fooFields.username.type)).to.equal(
+        JSON.stringify(new GraphQLJoiType({
+          name: 'username',
+          schema: schema.username,
+        }))
+      );
     });
   });
 });
