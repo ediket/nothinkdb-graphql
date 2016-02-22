@@ -9,6 +9,7 @@ import {
   GraphQLString,
   GraphQLBoolean,
   GraphQLList,
+  GraphQLEnumType,
 } from 'graphql';
 import Joi from 'joi';
 import { Table } from 'nothinkdb';
@@ -37,7 +38,7 @@ describe('table', () => {
           object: Joi.object().keys({
             string: Joi.string(),
           }),
-          enum: Joi.any().valid([]),
+          enum: Joi.any().valid(['red', 'green', 'blue']),
         }),
       });
 
@@ -57,6 +58,15 @@ describe('table', () => {
           string: fooFields.string,
         },
       }));
+
+      expect(fooFields.enum.type).to.deep.equal(new GraphQLEnumType({
+        name: 'enum',
+        values: {
+          red: { value: 'red' },
+          green: { value: 'green' },
+          blue: { value: 'blue' },
+        },
+      }));
     });
 
     it('should work', async () => {
@@ -74,7 +84,7 @@ describe('table', () => {
           object: Joi.object().keys({
             string: Joi.string(),
           }),
-          enum: Joi.any().valid(['a']),
+          enum: Joi.any().valid(['red', 'blue']),
         }),
       });
 
@@ -90,7 +100,7 @@ describe('table', () => {
         object: {
           string: 'string',
         },
-        enum: 'a',
+        enum: 'red',
       };
 
       const Foo = new GraphQLObjectType({

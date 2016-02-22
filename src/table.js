@@ -8,6 +8,7 @@ import {
   GraphQLBoolean,
   GraphQLNonNull,
   GraphQLList,
+  GraphQLEnumType,
 } from 'graphql';
 import { GraphQLJoiType } from './type';
 
@@ -94,11 +95,18 @@ export function getGraphQLfieldsFromSchema(schema, key) {
     break;
   }
 
-  if (flags.presence === 'allowOnly') {
+  if (flags.allowOnly) {
     assert.equal(_.isEmpty(valids._set), false, 'enum should have at least 1 item.');
-    // TODO: Implement GraphQLEnumType
+    GraphQLType = new GraphQLEnumType({
+      name: key,
+      values: _.reduce(valids._set, (result, value) => {
+        result[value] = {
+          value: value,
+        };
+        return result;
+      }, {}),
+    });
   }
-
 
   if (flags.presence === 'required') {
     GraphQLType = new GraphQLNonNull(GraphQLType);
