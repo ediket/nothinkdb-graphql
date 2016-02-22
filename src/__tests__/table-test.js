@@ -15,6 +15,7 @@ import Joi from 'joi';
 import { Table } from 'nothinkdb';
 import {
   getGraphQLFieldsFromTable,
+  joiToGraphQLJoiType,
 } from '../table';
 import {
   GraphQLJoiType,
@@ -126,54 +127,35 @@ describe('table', () => {
     });
 
     it('should get graphql fields with custom Joi type', async () => {
-      const basicSchema = {
-        someStringField: Joi.string(),
-      };
-      const customSchema = {
-        email: Joi.string().email(),
-        username: Joi.string().min(3).max(5),
-      };
-      const fooTable = new Table({
-        table: 'foo',
-        schema: () => ({
-          ...basicSchema,
-          ...customSchema,
-        }),
-      });
-
-      const fooFields = getGraphQLFieldsFromTable(fooTable, customSchema);
-
-      expect(fooFields.someStringField.type).to.equal(GraphQLString);
-    });
-
-    it('should get graphql fields with custom Joi type', async () => {
       const schema = {
         id: Joi.string(),
-        email: Joi.string().email().meta({ isScalar: true }),
-        username: Joi.string().min(3).max(5).meta({ isScalar: true }),
       };
+
+      const scalarSchema = joiToGraphQLJoiType({
+        email: Joi.string().email(),
+      });
 
       const fooTable = new Table({
         table: 'foo',
-        schema: () => schema,
+        schema: () => {
+          return {
+            ...schema,
+            ...scalarSchema,
+          };
+        },
       });
 
       const fooFields = getGraphQLFieldsFromTable(fooTable);
+      const expectedType = new GraphQLJoiType({
+        name: 'email',
+        schema: Joi.string().email(),
+      });
 
       expect(fooFields.id.type).to.equal(GraphQLString);
-      expect(true).to.be.true;
-      expect(JSON.stringify(fooFields.email.type)).to.equal(
-        JSON.stringify(new GraphQLJoiType({
-          name: 'email',
-          schema: schema.email,
-        }))
-      );
-      expect(JSON.stringify(fooFields.username.type)).to.equal(
-        JSON.stringify(new GraphQLJoiType({
-          name: 'username',
-          schema: schema.username,
-        }))
-      );
+      expect(fooFields.email.type.name)
+        .to.equal(expectedType.name);
+      expect(fooFields.email.type.schema.meta)
+        .to.deep.equal(expectedType.schema.meta);
     });
   });
 });

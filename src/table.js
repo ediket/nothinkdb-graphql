@@ -12,12 +12,12 @@ import {
 } from 'graphql';
 import { GraphQLJoiType } from './type';
 
-function isJoiCollection(schema) {
-  return _.isObject(schema) && !_.has(schema, 'isJoi');
+function isJoi(schema) {
+  return _.has(schema, 'isJoi');
 }
 
-function mapSchema(schema, iteratee) {
-  return _.mapValues(schema, (fieldSchema, fieldKey) => iteratee(fieldSchema, fieldKey));
+function isJoiCollection(schema) {
+  return _.isObject(schema) && !isJoi(schema);
 }
 
 export function getGraphQLFieldsFromTable(table) {
@@ -25,28 +25,9 @@ export function getGraphQLFieldsFromTable(table) {
   return getGraphQLfieldsFromSchema(schema);
 }
 
-export function getGraphQLScalarFieldsFromSchema(schema, key) {
-  if (isJoiCollection(schema)) {
-    return mapSchema(schema, getGraphQLScalarFieldsFromSchema);
-  }
-
-  const {
-    _description: description,
-  } = schema;
-  const GraphQLType = new GraphQLJoiType({
-    name: key,
-    schema,
-  });
-
-  return {
-    type: GraphQLType,
-    description,
-  };
-}
-
 export function getGraphQLfieldsFromSchema(schema, key) {
   if (isJoiCollection(schema)) {
-    return mapSchema(schema, getGraphQLfieldsFromSchema);
+    return _.mapValues(schema, (fieldSchema, fieldKey) => getGraphQLfieldsFromSchema(fieldSchema, fieldKey));
   }
 
   let GraphQLType;
@@ -59,15 +40,6 @@ export function getGraphQLfieldsFromSchema(schema, key) {
     _valids: valids,
     _meta: meta,
   } = schema;
-
-  if (
-    _.chain(meta)
-      .find(item => item.isScalar)
-      .get('isScalar')
-      .value()
-    ) {
-    return getGraphQLScalarFieldsFromSchema(schema, key);
-  }
 
   switch (type) {
   case 'object':
@@ -112,8 +84,26 @@ export function getGraphQLfieldsFromSchema(schema, key) {
     GraphQLType = new GraphQLNonNull(GraphQLType);
   }
 
+  const scalarType = _.chain(meta)
+    .find(item => item.GraphQLType)
+    .get('GraphQLType')
+    .value();
+  if (scalarType) {
+    GraphQLType = scalarType;
+  }
+
   return {
     type: GraphQLType,
     description,
   };
+}
+
+export function joiToGraphQLJoiType(schema, name) {
+  if (isJoiCollection(schema)) {
+    return _.mapValues(schema, (fieldSchema, fieldKey) => joiToGraphQLJoiType(fieldSchema, fieldKey));
+  }
+
+  const graphQLJoiType = new GraphQLJoiType({ name, schema });
+
+  return graphQLJoiType.schema;
 }

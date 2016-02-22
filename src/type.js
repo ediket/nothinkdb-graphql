@@ -24,6 +24,6 @@ export class GraphQLJoiType extends GraphQLScalarType {
         return value;
       },
     });
-    this.schema = schema;
+    this.schema = schema.meta({ GraphQLType: this });
   }
 }
