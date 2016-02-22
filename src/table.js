@@ -8,7 +8,17 @@ import {
   GraphQLBoolean,
   GraphQLNonNull,
   GraphQLList,
+  GraphQLEnumType,
 } from 'graphql';
+import { GraphQLJoiType } from './type';
+
+function isJoi(schema) {
+  return _.has(schema, 'isJoi');
+}
+
+function isJoiCollection(schema) {
+  return _.isObject(schema) && !isJoi(schema);
+}
 
 export function getGraphQLFieldsFromTable(table) {
   const schema = table.schema();
@@ -16,7 +26,7 @@ export function getGraphQLFieldsFromTable(table) {
 }
 
 export function getGraphQLfieldsFromSchema(schema, key) {
-  if (_.isObject(schema) && !_.has(schema, 'isJoi')) {
+  if (isJoiCollection(schema)) {
     return _.mapValues(schema, (fieldSchema, fieldKey) => getGraphQLfieldsFromSchema(fieldSchema, fieldKey));
   }
 
@@ -28,6 +38,7 @@ export function getGraphQLfieldsFromSchema(schema, key) {
     _tests: tests,
     _inner: inner,
     _valids: valids,
+    _meta: meta,
   } = schema;
 
   switch (type) {
@@ -56,18 +67,40 @@ export function getGraphQLfieldsFromSchema(schema, key) {
     break;
   }
 
-  if (flags.presence === 'allowOnly') {
+  if (flags.allowOnly) {
     assert.equal(_.isEmpty(valids._set), false, 'enum should have at least 1 item.');
-    // TODO: Implement GraphQLEnumType
+    GraphQLType = new GraphQLEnumType({
+      name: key,
+      values: _.reduce(valids._set, (result, value) => {
+        result[value] = {
+          value: value,
+        };
+        return result;
+      }, {}),
+    });
   }
-
 
   if (flags.presence === 'required') {
     GraphQLType = new GraphQLNonNull(GraphQLType);
+  }
+
+  const findedMeta = _.find(meta, item => item.GraphQLType);
+  if (findedMeta) {
+    GraphQLType = findedMeta.GraphQLType;
   }
 
   return {
     type: GraphQLType,
     description,
   };
+}
+
+export function joiToGraphQLJoiType(schema, name) {
+  if (isJoiCollection(schema)) {
+    return _.mapValues(schema, (fieldSchema, fieldKey) => joiToGraphQLJoiType(fieldSchema, fieldKey));
+  }
+
+  const graphQLJoiType = new GraphQLJoiType({ name, schema });
+
+  return graphQLJoiType.schema;
 }

@@ -9,12 +9,17 @@ import {
   GraphQLString,
   GraphQLBoolean,
   GraphQLList,
+  GraphQLEnumType,
 } from 'graphql';
 import Joi from 'joi';
 import { Table } from 'nothinkdb';
 import {
   getGraphQLFieldsFromTable,
+  joiToGraphQLJoiType,
 } from '../table';
+import {
+  GraphQLJoiType,
+} from '../type';
 
 
 describe('table', () => {
@@ -34,7 +39,7 @@ describe('table', () => {
           object: Joi.object().keys({
             string: Joi.string(),
           }),
-          enum: Joi.any().valid([]),
+          enum: Joi.any().valid(['red', 'green', 'blue']),
         }),
       });
 
@@ -55,6 +60,15 @@ describe('table', () => {
         },
       }));
 
+      expect(fooFields.enum.type).to.deep.equal(new GraphQLEnumType({
+        name: 'enum',
+        values: {
+          red: { value: 'red' },
+          green: { value: 'green' },
+          blue: { value: 'blue' },
+        },
+      }));
+
       const sampleData = {
         any: 'any',
         required: 'required',
@@ -67,7 +81,7 @@ describe('table', () => {
         object: {
           string: 'string',
         },
-        enum: 'a',
+        enum: 'red',
       };
 
       const Foo = new GraphQLObjectType({
@@ -110,6 +124,38 @@ describe('table', () => {
 
       expect(result.errors).to.be.empty;
       expect(result.data.foo).deep.equal(sampleData);
+    });
+
+    it('should get graphql fields with custom Joi type', async () => {
+      const schema = {
+        id: Joi.string(),
+      };
+
+      const scalarSchema = joiToGraphQLJoiType({
+        email: Joi.string().email(),
+      });
+
+      const fooTable = new Table({
+        table: 'foo',
+        schema: () => {
+          return {
+            ...schema,
+            ...scalarSchema,
+          };
+        },
+      });
+
+      const fooFields = getGraphQLFieldsFromTable(fooTable);
+      const expectedType = new GraphQLJoiType({
+        name: 'email',
+        schema: Joi.string().email(),
+      });
+
+      expect(fooFields.id.type).to.equal(GraphQLString);
+      expect(fooFields.email.type.name)
+        .to.equal(expectedType.name);
+      expect(fooFields.email.type.schema.meta)
+        .to.deep.equal(expectedType.schema.meta);
     });
   });
 });
