@@ -84,12 +84,9 @@ export function getGraphQLfieldsFromSchema(schema, key) {
     GraphQLType = new GraphQLNonNull(GraphQLType);
   }
 
-  const scalarType = _.chain(meta)
-    .find(item => item.GraphQLType)
-    .get('GraphQLType')
-    .value();
-  if (scalarType) {
-    GraphQLType = scalarType;
+  const findedMeta = _.find(meta, item => item.GraphQLType);
+  if (findedMeta) {
+    GraphQLType = findedMeta.GraphQLType;
   }
 
   return {
