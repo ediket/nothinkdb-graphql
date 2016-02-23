@@ -11,6 +11,7 @@ import {
   GraphQLList,
   GraphQLEnumType,
 } from 'graphql';
+import GraphQLDateType from 'graphql-custom-datetype';
 import Joi from 'joi';
 import { Table } from 'nothinkdb';
 import {
@@ -35,6 +36,7 @@ describe('table', () => {
           float: Joi.number(),
           int: Joi.number().integer(),
           boolean: Joi.boolean(),
+          createdAt: Joi.date(),
           array: Joi.array().items(Joi.string()),
           object: Joi.object().keys({
             string: Joi.string(),
@@ -52,6 +54,7 @@ describe('table', () => {
       expect(fooFields.float.type).to.equal(GraphQLFloat);
       expect(fooFields.int.type).to.equal(GraphQLInt);
       expect(fooFields.boolean.type).to.equal(GraphQLBoolean);
+      expect(fooFields.createdAt.type).to.equal(GraphQLDateType);
       expect(fooFields.array.type).to.deep.equal(new GraphQLList(GraphQLString));
       expect(fooFields.object.type).to.deep.equal(new GraphQLObjectType({
         name: 'object',
@@ -59,7 +62,6 @@ describe('table', () => {
           string: fooFields.string,
         },
       }));
-
       expect(fooFields.enum.type).to.deep.equal(new GraphQLEnumType({
         name: 'enum',
         values: {
@@ -77,6 +79,7 @@ describe('table', () => {
         float: 0.1,
         int: 1,
         boolean: false,
+        createdAt: new Date(),
         array: ['string'],
         object: {
           string: 'string',
@@ -113,6 +116,7 @@ describe('table', () => {
             float
             int
             boolean
+            createdAt
             array
             object {
               string
@@ -121,6 +125,8 @@ describe('table', () => {
           }
         }
       `);
+
+      sampleData.createdAt = sampleData.createdAt.toJSON();
 
       expect(result.errors).to.be.empty;
       expect(result.data.foo).deep.equal(sampleData);

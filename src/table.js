@@ -10,7 +10,10 @@ import {
   GraphQLList,
   GraphQLEnumType,
 } from 'graphql';
-import { GraphQLJoiType } from './type';
+import GraphQLDateType from 'graphql-custom-datetype';
+import {
+  GraphQLJoiType,
+ } from './type';
 
 function isJoi(schema) {
   return _.has(schema, 'isJoi');
@@ -60,6 +63,9 @@ export function getGraphQLfieldsFromSchema(schema, key) {
     break;
   case 'number':
     GraphQLType = _.find(tests, { name: 'integer' }) ? GraphQLInt : GraphQLFloat;
+    break;
+  case 'date':
+    GraphQLType = GraphQLDateType;
     break;
   case 'string':
   default:
