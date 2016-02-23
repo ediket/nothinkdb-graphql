@@ -126,10 +126,9 @@ describe('table', () => {
         }
       `);
 
-      sampleData.createdAt = sampleData.createdAt.toJSON();
-
       expect(result.errors).to.be.empty;
-      expect(result.data.foo).deep.equal(sampleData);
+      expect(JSON.stringify(result.data.foo))
+        .to.equal(JSON.stringify(sampleData));
     });
 
     it('should get graphql fields with custom Joi type', async () => {
