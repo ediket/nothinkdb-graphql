@@ -39,12 +39,13 @@ export function getGraphQLfieldsFromSchema(schema, key) {
     _inner: inner,
     _valids: valids,
     _meta: meta,
+    _unit: unit,
   } = schema;
 
   switch (type) {
   case 'object':
     GraphQLType = new GraphQLObjectType({
-      name: key,
+      name: key || unit,
       fields: _.reduce(inner.children, (memo, child) => {
         return { ...memo, [child.key]: getGraphQLfieldsFromSchema(child.schema, child.key) };
       }, {}),
@@ -89,11 +90,11 @@ export function getGraphQLfieldsFromSchema(schema, key) {
     GraphQLType = findedMeta.GraphQLType;
   }
 
-  return {
-    type: GraphQLType,
-    description,
-  };
+  const result = { type: GraphQLType };
+  if (description) result.description = description;
+  return result;
 }
+
 
 export function joiToGraphQLJoiType(schema, name) {
   if (isJoiCollection(schema)) {
