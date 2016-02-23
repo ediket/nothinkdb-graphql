@@ -44,8 +44,10 @@ export function getGraphQLfieldsFromSchema(schema, key) {
 
   switch (type) {
   case 'object':
+    const name = key || unit;
+    assert.equal(_.isEmpty(name), false, 'object must provide by key or joi.unit()');
     GraphQLType = new GraphQLObjectType({
-      name: key || unit,
+      name,
       fields: _.reduce(inner.children, (memo, child) => {
         return { ...memo, [child.key]: getGraphQLfieldsFromSchema(child.schema, child.key) };
       }, {}),
