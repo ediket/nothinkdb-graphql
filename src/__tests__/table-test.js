@@ -159,21 +159,19 @@ describe('table', () => {
     });
 
     it('should get graphql fields with nested Joi schema', async () => {
-      const contact = Joi.object().keys({
-        phone: {
-          home: Joi.string(),
-          cell: Joi.string(),
-        },
-      });
-      const notes = Joi.array().items(
-        Joi.object().keys({
-          from: Joi.string(),
-          subject: Joi.string(),
-        }).unit('note')
-      );
       const schema = {
-        contact,
-        notes,
+        contact: Joi.object().keys({
+          phone: {
+            home: Joi.string(),
+            cell: Joi.string(),
+          },
+        }),
+        notes: Joi.array().items(
+          Joi.object().keys({
+            from: Joi.string(),
+            subject: Joi.string(),
+          }).unit('note')
+        ),
       };
 
       const userTable = new Table({
