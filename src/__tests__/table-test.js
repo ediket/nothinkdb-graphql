@@ -162,5 +162,52 @@ describe('table', () => {
       expect(fooFields.email.type.schema.meta)
         .to.deep.equal(expectedType.schema.meta);
     });
+
+    it('should get graphql fields with nested Joi schema', async () => {
+      const schema = {
+        contact: Joi.object().keys({
+          phone: {
+            home: Joi.string(),
+            cell: Joi.string(),
+          },
+        }),
+        notes: Joi.array().items(
+          Joi.object().keys({
+            from: Joi.string(),
+            subject: Joi.string(),
+          }).unit('note')
+        ),
+      };
+
+      const userTable = new Table({
+        table: 'user',
+        schema: () => schema,
+      });
+
+      const userFields = getGraphQLFieldsFromTable(userTable);
+      expect(userFields.contact.type).to.deep.equal(new GraphQLObjectType({
+        name: 'contact',
+        fields: {
+          phone: {
+            type: new GraphQLObjectType({
+              name: 'phone',
+              fields: {
+                home: { type: GraphQLString },
+                cell: { type: GraphQLString },
+              },
+            }),
+          },
+        },
+      }));
+      expect(userFields.notes.type).to.deep.equal(new GraphQLList(
+        new GraphQLObjectType({
+          name: 'note',
+          fields: {
+            from: { type: GraphQLString },
+            subject: { type: GraphQLString },
+          },
+        })
+      ));
+    });
   });
 });
