@@ -98,9 +98,7 @@ export function getGraphQLfieldsFromSchema(schema, key) {
     GraphQLType = findedMeta.GraphQLType;
   }
 
-  const result = { type: GraphQLType };
-  if (description) result.description = description;
-  return result;
+  return _.omitBy({ type: GraphQLType, description }, _.isEmpty);
 }
 
 
