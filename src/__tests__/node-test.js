@@ -1,4 +1,5 @@
 import { expect } from 'chai';
+import r from 'rethinkdb';
 import {
   graphql,
   GraphQLSchema,
@@ -7,6 +8,7 @@ import {
 import{
   globalIdField,
   nodeDefinitions,
+  toGlobalId,
 } from 'graphql-relay';
 import { Table } from 'nothinkdb';
 import Joi from 'joi';
@@ -19,6 +21,21 @@ import {
 
 
 describe('node', () => {
+  let connection;
+  before(async () => {
+    connection = await r.connect({});
+    await r.branch(r.dbList().contains('test').not(), r.dbCreate('test'), null).run(connection);
+    r.dbCreate('test');
+  });
+
+  beforeEach(async () => {
+    await r.branch(r.tableList().contains('user').not(), r.tableCreate('user'), null).run(connection);
+  });
+
+  after(async () => {
+    await connection.close();
+  });
+
   describe('nodeDefinitionsFromTables', () => {
     it('should return nodeField, nodeInterface property', async () => {
       expect(nodeDefinitionsFromTables([]))
@@ -40,12 +57,7 @@ describe('node', () => {
         .to.equal(nodeInterface.constructor.name);
     });
 
-    it(`should return nodeField, nodeInterface by using tables`, async () => {
-      const {} = nodeDefinitionsFromTables([]);
-
-    });
-
-    it(`should return nodeField, nodeInterface by using tables`, async () => {
+    it(`gets the correct ID for users`, async () => {
       const userTable = new Table({
         table: 'user',
         schema: () => ({
@@ -53,45 +65,54 @@ describe('node', () => {
           name: Joi.string(),
         }),
       });
+      await userTable.sync(connection);
+      const foo = userTable.create({ id: '122', name: 'nick' });
+      await userTable.insert([foo]).run(connection);
 
       const { nodeField, nodeInterface } = nodeDefinitionsFromTables({
-        user: userTable,
-      });
-      console.log(getGraphQLFieldsFromTable(userTable).id);
-      console.log(globalIdField());
-
-      globalIdField()
-      const User = new GraphQLObjectType({
-        name: 'user',
-        fields: {
-          ...getGraphQLFieldsFromTable(userTable),
-          id: globalIdField(),
+        user: {
+          table: userTable,
+          getGraphQLType: () => userType,
         },
+      });
+
+      const userType = new GraphQLObjectType({
+        name: 'User',
+        fields: getGraphQLFieldsFromTable(userTable),
         interfaces: [nodeInterface],
       });
 
-      const Schema = new GraphQLSchema({
-        query: new GraphQLObjectType({
-          name: 'Query',
-          fields: {
-            user: {
-              type: User,
-              resolve: () => ({name: 'nick'}),
-            },
-          },
+      const queryType = new GraphQLObjectType({
+        name: 'Query',
+        fields: () => ({
+          node: nodeField,
         }),
       });
-
+      const Schema = new GraphQLSchema({
+        query: queryType,
+      });
+      const globalId = toGlobalId('user', '122');
+      // console.log(globalId);
       const query = `
         query {
-          user {
-            name
+          node(id: "${globalId}") {
+            id
+            __typename
+            ... on User {
+              id
+              name
+            }
           }
         }
       `;
 
-      const result = await graphql(Schema, query);
-      console.log(result);
+      const expected = {
+        node: {
+          id: globalId,
+        },
+      };
+      // console.log(await graphql(Schema, query));
+      // return expect(graphql(Schema, query)).to.become({ data: expected });
     });
   });
 });

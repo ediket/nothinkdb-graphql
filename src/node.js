@@ -1,25 +1,32 @@
-import _ from 'lodash';
+import r from 'rethinkdb';
+import { Table } from 'nothinkdb';
 import {
   nodeDefinitions,
   fromGlobalId,
 } from 'graphql-relay';
 
-export function nodeDefinitionsFromTables(options = {}) {
-  const { tables, connection } = options;
-
+export function nodeDefinitionsFromTables(nodes = {}) {
   return nodeDefinitions(
-    async (globalId, context) => {
+    async (globalId) => {
+      const connection = await r.connect({});
       const { type, id } = fromGlobalId(globalId);
 
-      const table = tables[type];
-      // TODO: use isTable
-      if (table) return null;
+      const table = nodes[type].table;
 
+      if (!(table instanceof Table)) {
+        return null;
+      }
       const resource = await table.query().get(id).run(connection);
-      return resource || null;
+
+      // console.log('1', resource);
+      return {
+        resource,
+        type,
+      };
     },
     (obj) => {
-      console.log(obj);
+      // console.log('nodedefind type', nodes[obj.type].getGraphQLType());
+      return nodes[obj.type].getGraphQLType();
       // if (!obj.getModel) {
       //   return null;
       // }
