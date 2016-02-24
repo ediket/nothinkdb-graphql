@@ -45,6 +45,11 @@ export function getGraphQLfieldsFromSchema(schema, key) {
     _unit: unit,
   } = schema;
 
+  const findedMeta = _.find(meta, item => item.GraphQLType);
+  if (findedMeta) {
+    return findedMeta.GraphQLType;
+  }
+
   switch (type) {
   case 'object':
     const name = key || unit;
@@ -91,11 +96,6 @@ export function getGraphQLfieldsFromSchema(schema, key) {
 
   if (flags.presence === 'required') {
     GraphQLType = new GraphQLNonNull(GraphQLType);
-  }
-
-  const findedMeta = _.find(meta, item => item.GraphQLType);
-  if (findedMeta) {
-    GraphQLType = findedMeta.GraphQLType;
   }
 
   return _.omitBy({ type: GraphQLType, description }, _.isEmpty);

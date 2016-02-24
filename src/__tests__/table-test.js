@@ -157,9 +157,9 @@ describe('table', () => {
       });
 
       expect(fooFields.id.type).to.equal(GraphQLString);
-      expect(fooFields.email.type.name)
+      expect(fooFields.email.name)
         .to.equal(expectedType.name);
-      expect(fooFields.email.type.schema.meta)
+      expect(fooFields.email.schema.meta)
         .to.deep.equal(expectedType.schema.meta);
     });
 
