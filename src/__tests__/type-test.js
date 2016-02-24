@@ -6,7 +6,9 @@ import {
   GraphQLString,
 } from 'graphql';
 import Joi from 'joi';
-import { GraphQLJoiType } from '../type';
+import {
+  GraphQLJoiType,
+} from '../type';
 
 describe('type', () => {
   describe('GraphQLJoiType', () => {
