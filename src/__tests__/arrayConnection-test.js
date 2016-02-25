@@ -36,7 +36,7 @@ describe('connection', () => {
   });
 
   after(async () => {
-    await r.tableDrop(table.table).run(connection);
+    await r.tableDrop(table.tableName).run(connection);
   });
 
   describe('nodeIdToCursor, cursorToNodeId', () => {

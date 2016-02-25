@@ -181,6 +181,7 @@ describe('node', () => {
 
       return expect(graphql(schema, query)).to.become({data: expected});
     });
+
     it('has correct node interface', () => {
       const query = `{
         __type(name: "Node") {
@@ -198,7 +199,6 @@ describe('node', () => {
           }
         }
       }`;
-
       const expected = {
         __type: {
           name: 'Node',
@@ -272,7 +272,6 @@ describe('node', () => {
           },
         },
       };
-
       return expect(graphql(schema, query)).to.become({data: expected});
     });
   });

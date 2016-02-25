@@ -6,7 +6,7 @@
 import _ from 'lodash';
 import { fromGlobalId, toGlobalId } from 'graphql-relay';
 import { GraphQLError } from 'graphql/error';
-import r from 'rethinkdb';
+import { r } from 'nothinkdb';
 import { base64, unbase64 } from './base64';
 
 
