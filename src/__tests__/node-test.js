@@ -71,7 +71,7 @@ describe('node', () => {
     });
 
     after(async () => {
-      await r.table('user').delete().run(connection);
+      await r.table(TABLE_NAME).delete().run(connection);
       await connection.close();
     });
 
