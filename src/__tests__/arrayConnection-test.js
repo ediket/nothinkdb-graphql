@@ -1,7 +1,6 @@
 import { expect } from 'chai';
 import _ from 'lodash';
-import { Table, schema } from 'nothinkdb';
-import r from 'rethinkdb';
+import { Table, schema, r } from 'nothinkdb';
 import Joi from 'joi';
 import {
   nodeIdToCursor,
@@ -25,7 +24,7 @@ describe('connection', () => {
   before(async () => {
     connection = await r.connect({ db: 'test' });
     table = new Table({
-      table: TABLE,
+      tableName: TABLE,
       schema: () => ({
         ...schema,
       }),

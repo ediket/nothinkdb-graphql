@@ -45,13 +45,10 @@ export function getGraphQLfieldsFromSchema(schema, key) {
     _unit: unit,
   } = schema;
 
-  const findedMeta = _.find(meta, item => item.GraphQLType);
-  if (findedMeta) {
-    return _.omitBy({
-      description,
-      type: findedMeta.GraphQLType,
-    }, _.isEmpty);
-  }
+  const { GraphQLField, GraphQLType: metaGraphQLType } =
+    _.reduce(meta, (result, value) => _.assignIn(result, value), {});
+
+  if (!_.isUndefined(GraphQLField)) return GraphQLField;
 
   switch (type) {
   case 'object':
@@ -95,6 +92,10 @@ export function getGraphQLfieldsFromSchema(schema, key) {
         return result;
       }, {}),
     });
+  }
+
+  if (!_.isUndefined(metaGraphQLType)) {
+    GraphQLType = metaGraphQLType;
   }
 
   if (flags.presence === 'required') {

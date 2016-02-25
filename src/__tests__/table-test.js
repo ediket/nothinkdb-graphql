@@ -11,6 +11,9 @@ import {
   GraphQLList,
   GraphQLEnumType,
 } from 'graphql';
+import{
+  globalIdField,
+} from 'graphql-relay';
 import GraphQLDateType from 'graphql-custom-datetype';
 import Joi from 'joi';
 import { Table } from 'nothinkdb';
@@ -27,7 +30,7 @@ describe('table', () => {
   describe('getGraphQLFieldsFromTable', () => {
     it('should get graphql fields from table', async () => {
       const fooTable = new Table({
-        table: 'foo',
+        tableName: 'foo',
         schema: () => ({
           any: Joi.any(),
           required: Joi.any().required(),
@@ -141,7 +144,7 @@ describe('table', () => {
       });
 
       const fooTable = new Table({
-        table: 'foo',
+        tableName: 'foo',
         schema: () => {
           return {
             ...defaultSchema,
@@ -189,9 +192,22 @@ describe('table', () => {
       return expect(graphql(schema, query)).to.become({ data: expected });
     });
 
+    it('should get graphql fields with graphql field', async () => {
+      const fooTable = new Table({
+        tableName: 'foo',
+        schema: () => ({
+          id: Joi.string().meta({ GraphQLField: globalIdField('user')}),
+        }),
+      });
+
+      const fooFields = getGraphQLFieldsFromTable(fooTable);
+      expect(JSON.stringify(fooFields.id))
+        .to.deep.equal(JSON.stringify(globalIdField('user')));
+    });
+
     it('should get graphql fields with nested Joi schema', async () => {
       const userTable = new Table({
-        table: 'user',
+        tableName: 'user',
         schema: () => ({
           contact: Joi.object().keys({
             phone: {

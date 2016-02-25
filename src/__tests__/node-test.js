@@ -1,5 +1,4 @@
 import { expect } from 'chai';
-import r from 'rethinkdb';
 import {
   graphql,
   GraphQLSchema,
@@ -9,7 +8,7 @@ import{
   globalIdField,
   toGlobalId,
 } from 'graphql-relay';
-import { Table } from 'nothinkdb';
+import { Table, Environment, r } from 'nothinkdb';
 import Joi from 'joi';
 import {
   getGraphQLFieldsFromTable,
@@ -19,55 +18,61 @@ import {
 } from '../node';
 
 const USER_ID1 = '1';
-const USER_ID2 = '2';
 const TABLE_NAME = 'User';
 
 describe('node', () => {
   describe('nodeDefinitionsFromTables', async () => {
-    const connection = await r.connect({});
-    await r.branch(r.dbList().contains('test').not(), r.dbCreate('test'), null).run(connection);
-    r.dbCreate('test');
-    await r.branch(r.tableList().contains(TABLE_NAME).not(), r.tableCreate(TABLE_NAME), null).run(connection);
+    let connection;
+    let schema;
 
-    const userTable = new Table({
-      table: TABLE_NAME,
-      schema: () => ({
-        id: Joi.string().meta({ GraphQLType: globalIdField(TABLE_NAME)}),
-        name: Joi.string(),
-      }),
-    });
-    await userTable.sync(connection);
+    before(async () => {
+      connection = await r.connect({});
+      await r.branch(r.dbList().contains('test').not(), r.dbCreate('test'), null).run(connection);
+      r.dbCreate('test');
+      await r.branch(r.tableList().contains(TABLE_NAME).not(), r.tableCreate(TABLE_NAME), null).run(connection);
 
-    const john = await userTable.create({
-      id: USER_ID1,
-      name: 'John Doe',
-    });
-    const jane = await userTable.create({
-      id: USER_ID2,
-      name: 'Jane Smith',
-    });
-    await userTable.insert([john, jane]).run(connection);
+      const environment = new Environment({
+        Table,
+      });
 
-    const { nodeField, nodeInterface } = nodeDefinitionsFromTables({
-      user: {
-        table: userTable,
-        getGraphQLType: () => userType,
-      },
-    });
-    const userType = new GraphQLObjectType({
-      name: TABLE_NAME,
-      fields: getGraphQLFieldsFromTable(userTable),
-      interfaces: [nodeInterface],
-    });
-    const queryType = new GraphQLObjectType({
-      name: 'Query',
-      fields: () => ({
-        node: nodeField,
-      }),
-    });
+      const userTable = environment.createTable({
+        tableName: TABLE_NAME,
+        schema: () => ({
+          id: Joi.string().meta({ GraphQLField: globalIdField(TABLE_NAME)}),
+          name: Joi.string(),
+        }),
+      });
+      await environment.sync(connection);
 
-    const Schema = new GraphQLSchema({
-      query: queryType,
+      const john = await userTable.create({
+        id: USER_ID1,
+        name: 'John Doe',
+      });
+      await userTable.insert([john]).run(connection);
+
+      const { nodeField, nodeInterface } = nodeDefinitionsFromTables({
+        environment,
+        graphQLTypes: {
+          [TABLE_NAME]: () => userType,
+        },
+      });
+
+      const userType = new GraphQLObjectType({
+        name: TABLE_NAME,
+        fields: getGraphQLFieldsFromTable(userTable),
+        interfaces: [nodeInterface],
+      });
+
+      const queryType = new GraphQLObjectType({
+        name: 'Query',
+        fields: () => ({
+          node: nodeField,
+        }),
+      });
+
+      schema = new GraphQLSchema({
+        query: queryType,
+      });
     });
 
     after(async () => {
@@ -76,12 +81,12 @@ describe('node', () => {
     });
 
     it('should return nodeField, nodeInterface property', async () => {
-      expect(nodeDefinitionsFromTables([]))
+      expect(nodeDefinitionsFromTables())
         .to.have.all.keys(['nodeField', 'nodeInterface']);
     });
 
     it(`gets the correct ID for users`, async () => {
-      const globalId = toGlobalId('user', USER_ID1);
+      const globalId = toGlobalId(TABLE_NAME, USER_ID1);
       const query = `
         query {
           node(id: "${globalId}") {
@@ -94,11 +99,11 @@ describe('node', () => {
           id: globalId,
         },
       };
-      return expect(graphql(Schema, query)).to.become({ data: expected });
+      return expect(graphql(schema, query)).to.become({ data: expected });
     });
 
     it('gets the correct name for users', () => {
-      const globalId = toGlobalId('user', USER_ID1);
+      const globalId = toGlobalId(TABLE_NAME, USER_ID1);
       const query = `{
         node(id: "${globalId}") {
           id
@@ -115,11 +120,11 @@ describe('node', () => {
         },
       };
 
-      return expect(graphql(Schema, query)).to.become({data: expected});
+      return expect(graphql(schema, query)).to.become({data: expected});
     });
 
     it('gets the correct type name for users', () => {
-      const globalId = toGlobalId('user', USER_ID1);
+      const globalId = toGlobalId(TABLE_NAME, USER_ID1);
       const query = `{
         node(id: "${globalId}") {
           id
@@ -133,7 +138,7 @@ describe('node', () => {
         },
       };
 
-      return expect(graphql(Schema, query)).to.become({data: expected});
+      return expect(graphql(schema, query)).to.become({data: expected});
     });
 
     it('returns null for bad IDs', () => {
@@ -146,7 +151,7 @@ describe('node', () => {
         node: null,
       };
 
-      return expect(graphql(Schema, query)).to.become({data: expected});
+      return expect(graphql(schema, query)).to.become({data: expected});
     });
 
     it('returns null for not exist node in nodes', () => {
@@ -160,11 +165,11 @@ describe('node', () => {
         node: null,
       };
 
-      return expect(graphql(Schema, query)).to.become({data: expected});
+      return expect(graphql(schema, query)).to.become({data: expected});
     });
 
     it('returns null for not exist data in table', () => {
-      const globalId = toGlobalId('user', 3);
+      const globalId = toGlobalId(TABLE_NAME, 3);
       const query = `{
         node(id: "${globalId}") {
           id
@@ -174,7 +179,7 @@ describe('node', () => {
         node: null,
       };
 
-      return expect(graphql(Schema, query)).to.become({data: expected});
+      return expect(graphql(schema, query)).to.become({data: expected});
     });
     it('has correct node interface', () => {
       const query = `{
@@ -213,7 +218,7 @@ describe('node', () => {
         },
       };
 
-      return expect(graphql(Schema, query)).to.become({data: expected});
+      return expect(graphql(schema, query)).to.become({data: expected});
     });
 
     it('has correct node root field', () => {
@@ -268,7 +273,7 @@ describe('node', () => {
         },
       };
 
-      return expect(graphql(Schema, query)).to.become({data: expected});
+      return expect(graphql(schema, query)).to.become({data: expected});
     });
   });
 });

@@ -1,20 +1,22 @@
-import r from 'rethinkdb';
+import { r } from 'nothinkdb';
 import _ from 'lodash';
 import {
   nodeDefinitions,
   fromGlobalId,
 } from 'graphql-relay';
 
-export function nodeDefinitionsFromTables(nodes = {}) {
+export function nodeDefinitionsFromTables(options = {}) {
+  const { environment, graphQLTypes } = options;
+
   return nodeDefinitions(
     async (globalId) => {
       const connection = await r.connect({});
       const { type, id } = fromGlobalId(globalId);
 
-      const node = nodes[type];
-      if (_.isUndefined(node)) return null;
+      if (!environment.hasTable(type)) return null;
 
-      const resource = await node.table.get(id).run(connection);
+      const table = environment.getTable(type);
+      const resource = await table.get(id).run(connection);
       if (_.isNull(resource)) return null;
 
       await connection.close();
@@ -24,9 +26,8 @@ export function nodeDefinitionsFromTables(nodes = {}) {
     },
     (obj) => {
       if (_.isNull(obj)) return null;
-      const node = nodes[obj._dataType];
-
-      return node.getGraphQLType();
+      const getGraphQLType = graphQLTypes[obj._dataType];
+      return getGraphQLType();
     }
   );
 }
