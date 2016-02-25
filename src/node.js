@@ -9,16 +9,17 @@ export function nodeDefinitionsFromTables(nodes = {}) {
   return nodeDefinitions(
     async (globalId) => {
       const connection = await r.connect({});
-
       const { type, id } = fromGlobalId(globalId);
-      if (_.isEmpty(type) || _.isEmpty(id)) return null;
 
-      const table = nodes[type].table;
+      const node = nodes[type];
+      if (_.isUndefined(node)) return null;
 
-      const resource = await table.get(id).run(connection);
+      const resource = await node.table.get(id).run(connection);
+      if (_.isNull(resource)) return null;
+
+      await connection.close();
 
       resource.GraphQLTypeName = 'user';
-      await connection.close();
       return resource;
     },
     (obj) => {

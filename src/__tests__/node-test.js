@@ -19,8 +19,7 @@ import {
 } from '../node';
 
 const USER_ID1 = '1';
-const USER_ID2 = '1';
-
+const USER_ID2 = '2';
 
 describe('node', async () => {
   const connection = await r.connect({});
@@ -139,6 +138,34 @@ describe('node', async () => {
     it('returns null for bad IDs', () => {
       const query = `{
         node(id: "hi") {
+          id
+        }
+      }`;
+      const expected = {
+        node: null,
+      };
+
+      return expect(graphql(Schema, query)).to.become({data: expected});
+    });
+
+    it('returns null for not exist node in nodes', () => {
+      const globalId = toGlobalId('post', 1);
+      const query = `{
+        node(id: "${globalId}") {
+          id
+        }
+      }`;
+      const expected = {
+        node: null,
+      };
+
+      return expect(graphql(Schema, query)).to.become({data: expected});
+    });
+
+    it('returns null for not exist data in table', () => {
+      const globalId = toGlobalId('user', 3);
+      const query = `{
+        node(id: "${globalId}") {
           id
         }
       }`;
