@@ -3,7 +3,6 @@ import {
   graphql,
   GraphQLSchema,
   GraphQLObjectType,
-  GraphQLInputObjectType,
   GraphQLNonNull,
   GraphQLInt,
   GraphQLFloat,
