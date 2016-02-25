@@ -3,6 +3,7 @@ import {
   graphql,
   GraphQLSchema,
   GraphQLObjectType,
+  GraphQLInputObjectType,
   GraphQLNonNull,
   GraphQLInt,
   GraphQLFloat,
@@ -132,7 +133,7 @@ describe('table', () => {
     });
 
     it('should get graphql fields with custom Joi type', async () => {
-      const schema = {
+      const defaultSchema = {
         id: Joi.string(),
       };
 
@@ -144,44 +145,68 @@ describe('table', () => {
         table: 'foo',
         schema: () => {
           return {
-            ...schema,
+            ...defaultSchema,
             ...scalarSchema,
           };
         },
       });
 
       const fooFields = getGraphQLFieldsFromTable(fooTable);
-      const expectedType = new GraphQLJoiType({
+      const GraphQLEmailType = new GraphQLJoiType({
         name: 'email',
         schema: Joi.string().email(),
       });
 
-      expect(fooFields.id.type).to.equal(GraphQLString);
-      expect(fooFields.email.name)
-        .to.equal(expectedType.name);
-      expect(fooFields.email.schema.meta)
-        .to.deep.equal(expectedType.schema.meta);
+      expect(fooFields.email.type.schema.meta)
+        .to.deep.equal(GraphQLEmailType.schema.meta);
+
+      const schema = new GraphQLSchema({
+        query: new GraphQLObjectType({
+          name: 'RootQueryType',
+          fields: {
+            echo: {
+              type: GraphQLString,
+              args: {
+                email: { type: GraphQLEmailType },
+              },
+              resolve: (root, {email}) => {
+                return email;
+              },
+            },
+          },
+        }),
+      });
+
+      const query = `
+        query Welcome {
+          echo (email: "hi@example.com")
+        }
+      `;
+
+      const expected = {
+        echo: 'hi@example.com',
+      };
+
+      return expect(graphql(schema, query)).to.become({ data: expected });
     });
 
     it('should get graphql fields with nested Joi schema', async () => {
-      const schema = {
-        contact: Joi.object().keys({
-          phone: {
-            home: Joi.string(),
-            cell: Joi.string(),
-          },
-        }),
-        notes: Joi.array().items(
-          Joi.object().keys({
-            from: Joi.string(),
-            subject: Joi.string(),
-          }).unit('note')
-        ),
-      };
-
       const userTable = new Table({
         table: 'user',
-        schema: () => schema,
+        schema: () => ({
+          contact: Joi.object().keys({
+            phone: {
+              home: Joi.string(),
+              cell: Joi.string(),
+            },
+          }),
+          notes: Joi.array().items(
+            Joi.object().keys({
+              from: Joi.string(),
+              subject: Joi.string(),
+            }).unit('note')
+          ),
+        }),
       });
 
       const userFields = getGraphQLFieldsFromTable(userTable);
@@ -208,6 +233,57 @@ describe('table', () => {
           },
         })
       ));
+
+      const UserType = new GraphQLObjectType({
+        name: 'User',
+        fields: userFields,
+      });
+      const sampleData = {
+        contact: {
+          phone: {
+            home: '010-111-1111',
+            cell: '02-11-111',
+          },
+        },
+        notes: [
+          {
+            from: 'john',
+            subject: 'hi',
+          },
+        ],
+      };
+
+      const schema = new GraphQLSchema({
+        query: new GraphQLObjectType({
+          name: 'RootQueryType',
+          fields: {
+            user: {
+              type: UserType,
+              resolve: () => sampleData,
+            },
+          },
+        }),
+      });
+
+      const query = `
+        query {
+          user {
+            contact {
+              phone {
+                home
+                cell
+              }
+            }
+            notes {
+              from
+              subject
+            }
+          }
+        }
+      `;
+
+      const expected = { user: sampleData };
+      return expect(graphql(schema, query)).to.become({ data: expected });
     });
   });
 });

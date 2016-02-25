@@ -47,7 +47,10 @@ export function getGraphQLfieldsFromSchema(schema, key) {
 
   const findedMeta = _.find(meta, item => item.GraphQLType);
   if (findedMeta) {
-    return findedMeta.GraphQLType;
+    return _.omitBy({
+      description,
+      type: findedMeta.GraphQLType,
+    }, _.isEmpty);
   }
 
   switch (type) {

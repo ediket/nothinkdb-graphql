@@ -45,7 +45,7 @@
     "graphql-relay": "^0.3.6",
     "joi": "^8.0.1",
     "lodash": "^4.4.0",
-    "nothinkdb": "^0.3.0",
+    "nothinkdb": "^0.4.3",
     "rethinkdb": "^2.2.1"
   }
 }
