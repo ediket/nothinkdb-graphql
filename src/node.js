@@ -1,5 +1,5 @@
 import r from 'rethinkdb';
-import { Table } from 'nothinkdb';
+import _ from 'lodash';
 import {
   nodeDefinitions,
   fromGlobalId,
@@ -9,30 +9,23 @@ export function nodeDefinitionsFromTables(nodes = {}) {
   return nodeDefinitions(
     async (globalId) => {
       const connection = await r.connect({});
+
       const { type, id } = fromGlobalId(globalId);
+      if (_.isEmpty(type) || _.isEmpty(id)) return null;
 
       const table = nodes[type].table;
 
-      if (!(table instanceof Table)) {
-        return null;
-      }
-      const resource = await table.query().get(id).run(connection);
+      const resource = await table.get(id).run(connection);
 
-      // console.log('1', resource);
-      return {
-        resource,
-        type,
-      };
+      resource.GraphQLTypeName = 'user';
+      await connection.close();
+      return resource;
     },
     (obj) => {
-      // console.log('nodedefind type', nodes[obj.type].getGraphQLType());
-      return nodes[obj.type].getGraphQLType();
-      // if (!obj.getModel) {
-      //   return null;
-      // }
-      // const name = obj.getModel().getTableName();
-      // const endpoint = getEndpoint(name);
-      // return endpoint.GraphQLType;
+      if (_.isNull(obj)) return null;
+      const node = nodes[obj.GraphQLTypeName];
+
+      return node.getGraphQLType();
     }
   );
 }
