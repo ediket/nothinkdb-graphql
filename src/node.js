@@ -19,12 +19,12 @@ export function nodeDefinitionsFromTables(nodes = {}) {
 
       await connection.close();
 
-      resource.GraphQLTypeName = 'user';
+      resource._dataType = type;
       return resource;
     },
     (obj) => {
       if (_.isNull(obj)) return null;
-      const node = nodes[obj.GraphQLTypeName];
+      const node = nodes[obj._dataType];
 
       return node.getGraphQLType();
     }

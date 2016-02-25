@@ -20,60 +20,61 @@ import {
 
 const USER_ID1 = '1';
 const USER_ID2 = '2';
+const TABLE_NAME = 'User';
 
-describe('node', async () => {
-  const connection = await r.connect({});
-  await r.branch(r.dbList().contains('test').not(), r.dbCreate('test'), null).run(connection);
-  r.dbCreate('test');
-  await r.branch(r.tableList().contains('user').not(), r.tableCreate('user'), null).run(connection);
+describe('node', () => {
+  describe('nodeDefinitionsFromTables', async () => {
+    const connection = await r.connect({});
+    await r.branch(r.dbList().contains('test').not(), r.dbCreate('test'), null).run(connection);
+    r.dbCreate('test');
+    await r.branch(r.tableList().contains(TABLE_NAME).not(), r.tableCreate(TABLE_NAME), null).run(connection);
 
-  const userTable = new Table({
-    table: 'user',
-    schema: () => ({
-      id: Joi.string().meta({ GraphQLType: globalIdField('user')}),
-      name: Joi.string(),
-    }),
-  });
-  await userTable.sync(connection);
+    const userTable = new Table({
+      table: TABLE_NAME,
+      schema: () => ({
+        id: Joi.string().meta({ GraphQLType: globalIdField(TABLE_NAME)}),
+        name: Joi.string(),
+      }),
+    });
+    await userTable.sync(connection);
 
-  const john = await userTable.create({
-    id: USER_ID1,
-    name: 'John Doe',
-  });
-  const jane = await userTable.create({
-    id: USER_ID2,
-    name: 'Jane Smith',
-  });
-  await userTable.insert([john, jane]).run(connection);
+    const john = await userTable.create({
+      id: USER_ID1,
+      name: 'John Doe',
+    });
+    const jane = await userTable.create({
+      id: USER_ID2,
+      name: 'Jane Smith',
+    });
+    await userTable.insert([john, jane]).run(connection);
 
-  const { nodeField, nodeInterface } = nodeDefinitionsFromTables({
-    user: {
-      table: userTable,
-      getGraphQLType: () => userType,
-    },
-  });
-  const userType = new GraphQLObjectType({
-    name: 'User',
-    fields: getGraphQLFieldsFromTable(userTable),
-    interfaces: [nodeInterface],
-  });
-  const queryType = new GraphQLObjectType({
-    name: 'Query',
-    fields: () => ({
-      node: nodeField,
-    }),
-  });
+    const { nodeField, nodeInterface } = nodeDefinitionsFromTables({
+      user: {
+        table: userTable,
+        getGraphQLType: () => userType,
+      },
+    });
+    const userType = new GraphQLObjectType({
+      name: TABLE_NAME,
+      fields: getGraphQLFieldsFromTable(userTable),
+      interfaces: [nodeInterface],
+    });
+    const queryType = new GraphQLObjectType({
+      name: 'Query',
+      fields: () => ({
+        node: nodeField,
+      }),
+    });
 
-  const Schema = new GraphQLSchema({
-    query: queryType,
-  });
+    const Schema = new GraphQLSchema({
+      query: queryType,
+    });
 
-  after(async () => {
-    await r.table('user').delete().run(connection);
-    await connection.close();
-  });
+    after(async () => {
+      await r.table('user').delete().run(connection);
+      await connection.close();
+    });
 
-  describe('nodeDefinitionsFromTables', () => {
     it('should return nodeField, nodeInterface property', async () => {
       expect(nodeDefinitionsFromTables([]))
         .to.have.all.keys(['nodeField', 'nodeInterface']);
@@ -128,7 +129,7 @@ describe('node', async () => {
       const expected = {
         node: {
           id: globalId,
-          __typename: 'User',
+          __typename: TABLE_NAME,
         },
       };
 
@@ -171,6 +172,100 @@ describe('node', async () => {
       }`;
       const expected = {
         node: null,
+      };
+
+      return expect(graphql(Schema, query)).to.become({data: expected});
+    });
+    it('has correct node interface', () => {
+      const query = `{
+        __type(name: "Node") {
+          name
+          kind
+          fields {
+            name
+            type {
+              kind
+              ofType {
+                name
+                kind
+              }
+            }
+          }
+        }
+      }`;
+
+      const expected = {
+        __type: {
+          name: 'Node',
+          kind: 'INTERFACE',
+          fields: [
+            {
+              name: 'id',
+              type: {
+                kind: 'NON_NULL',
+                ofType: {
+                  name: 'ID',
+                  kind: 'SCALAR',
+                },
+              },
+            },
+          ],
+        },
+      };
+
+      return expect(graphql(Schema, query)).to.become({data: expected});
+    });
+
+    it('has correct node root field', () => {
+      const query = `{
+        __schema {
+          queryType {
+            fields {
+              name
+              type {
+                name
+                kind
+              }
+              args {
+                name
+                type {
+                  kind
+                  ofType {
+                    name
+                    kind
+                  }
+                }
+              }
+            }
+          }
+        }
+      }`;
+      const expected = {
+        __schema: {
+          queryType: {
+            fields: [
+              {
+                name: 'node',
+                type: {
+                  name: 'Node',
+                  kind: 'INTERFACE',
+                },
+                args: [
+                  {
+                    name: 'id',
+                    type: {
+                      kind: 'NON_NULL',
+                      ofType: {
+                        name: 'ID',
+                        kind: 'SCALAR',
+                      },
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        },
       };
 
       return expect(graphql(Schema, query)).to.become({data: expected});
