@@ -20,7 +20,7 @@ import {
 const USER_ID1 = '1';
 const TABLE_NAME = 'User';
 
-describe.only('node', () => {
+describe('node', () => {
   let connection;
   let schema;
   let userTable;
@@ -80,7 +80,7 @@ describe.only('node', () => {
         .to.have.all.keys(['nodeField', 'nodeInterface']);
     });
 
-    it(`gets the correct ID for users`, async () => {
+    it(`gets the correct ID for users`, () => {
       const globalId = toGlobalId(TABLE_NAME, USER_ID1);
       const query = `
         query {
