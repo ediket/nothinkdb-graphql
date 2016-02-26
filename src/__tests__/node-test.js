@@ -8,7 +8,7 @@ import{
   globalIdField,
   toGlobalId,
 } from 'graphql-relay';
-import { Table, Environment, r } from 'nothinkdb';
+import { Environment, r } from 'nothinkdb';
 import Joi from 'joi';
 import {
   getGraphQLFieldsFromTable,
@@ -20,67 +20,62 @@ import {
 const USER_ID1 = '1';
 const TABLE_NAME = 'User';
 
-describe('node', () => {
-  describe('nodeDefinitionsFromTables', async () => {
-    let connection;
-    let schema;
+describe.only('node', () => {
+  let connection;
+  let schema;
+  let userTable;
 
-    before(async () => {
-      connection = await r.connect({});
-      await r.branch(r.dbList().contains('test').not(), r.dbCreate('test'), null).run(connection);
-      r.dbCreate('test');
-      await r.branch(r.tableList().contains(TABLE_NAME).not(), r.tableCreate(TABLE_NAME), null).run(connection);
+  before(async () => {
+    connection = await r.connect({});
+    await r.branch(r.dbList().contains('test').not(), r.dbCreate('test'), null).run(connection);
 
-      const environment = new Environment({
-        Table,
-      });
+    const environment = new Environment({});
 
-      const userTable = environment.createTable({
-        tableName: TABLE_NAME,
-        schema: () => ({
-          id: Joi.string().meta({ GraphQLField: globalIdField(TABLE_NAME)}),
-          name: Joi.string(),
-        }),
-      });
-      await environment.sync(connection);
+    userTable = environment.createTable({
+      tableName: TABLE_NAME,
+      schema: () => ({
+        id: Joi.string().meta({ GraphQLField: globalIdField(TABLE_NAME)}),
+        name: Joi.string(),
+      }),
+    });
+    await environment.sync(connection);
 
-      const john = await userTable.create({
-        id: USER_ID1,
-        name: 'John Doe',
-      });
-      await userTable.insert([john]).run(connection);
+    await userTable.insert(
+      userTable.create({ id: USER_ID1, name: 'John Doe' })
+    ).run(connection);
 
-      const { nodeField, nodeInterface } = nodeDefinitionsFromTables({
-        environment,
-        graphQLTypes: {
-          [TABLE_NAME]: () => userType,
-        },
-      });
-
-      const userType = new GraphQLObjectType({
-        name: TABLE_NAME,
-        fields: getGraphQLFieldsFromTable(userTable),
-        interfaces: [nodeInterface],
-      });
-
-      const queryType = new GraphQLObjectType({
-        name: 'Query',
-        fields: () => ({
-          node: nodeField,
-        }),
-      });
-
-      schema = new GraphQLSchema({
-        query: queryType,
-      });
+    const { nodeField, nodeInterface } = nodeDefinitionsFromTables({
+      environment,
+      graphQLTypes: {
+        [TABLE_NAME]: () => userType,
+      },
     });
 
-    after(async () => {
-      await r.table(TABLE_NAME).delete().run(connection);
-      await connection.close();
+    const userType = new GraphQLObjectType({
+      name: TABLE_NAME,
+      fields: getGraphQLFieldsFromTable(userTable),
+      interfaces: [nodeInterface],
     });
 
-    it('should return nodeField, nodeInterface property', async () => {
+    const queryType = new GraphQLObjectType({
+      name: 'Query',
+      fields: () => ({
+        node: nodeField,
+      }),
+    });
+
+    schema = new GraphQLSchema({
+      query: queryType,
+    });
+  });
+
+  after(async () => {
+    await userTable.query().delete().run(connection);
+    await connection.close();
+  });
+
+  describe('nodeDefinitionsFromTables', () => {
+    it('should return nodeField, nodeInterface property', () => {
       expect(nodeDefinitionsFromTables())
         .to.have.all.keys(['nodeField', 'nodeInterface']);
     });
@@ -112,14 +107,12 @@ describe('node', () => {
           }
         }
       }`;
-
       const expected = {
         node: {
           id: globalId,
           name: 'John Doe',
         },
       };
-
       return expect(graphql(schema, query)).to.become({data: expected});
     });
 
@@ -137,7 +130,6 @@ describe('node', () => {
           __typename: TABLE_NAME,
         },
       };
-
       return expect(graphql(schema, query)).to.become({data: expected});
     });
 
@@ -150,7 +142,6 @@ describe('node', () => {
       const expected = {
         node: null,
       };
-
       return expect(graphql(schema, query)).to.become({data: expected});
     });
 
@@ -164,7 +155,6 @@ describe('node', () => {
       const expected = {
         node: null,
       };
-
       return expect(graphql(schema, query)).to.become({data: expected});
     });
 
@@ -178,7 +168,6 @@ describe('node', () => {
       const expected = {
         node: null,
       };
-
       return expect(graphql(schema, query)).to.become({data: expected});
     });
 
@@ -217,7 +206,6 @@ describe('node', () => {
           ],
         },
       };
-
       return expect(graphql(schema, query)).to.become({data: expected});
     });
 
