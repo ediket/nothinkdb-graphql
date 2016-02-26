@@ -10,10 +10,11 @@ import {
   GraphQLList,
   GraphQLEnumType,
 } from 'graphql';
-import GraphQLDateType from 'graphql-custom-datetype';
 import {
   GraphQLJoiType,
- } from './type';
+  GraphQLDateType,
+} from './type';
+
 
 function isJoi(schema) {
   return _.has(schema, 'isJoi');

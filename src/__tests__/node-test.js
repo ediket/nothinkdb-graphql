@@ -34,7 +34,7 @@ describe('node', () => {
     userTable = environment.createTable({
       tableName: TABLE_NAME,
       schema: () => ({
-        id: Joi.string().meta({ GraphQLField: globalIdField(TABLE_NAME)}),
+        id: Joi.string().meta({ GraphQLField: globalIdField(TABLE_NAME) }),
         name: Joi.string(),
       }),
     });

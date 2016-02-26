@@ -27,3 +27,8 @@ export class GraphQLJoiType extends GraphQLScalarType {
     this.schema = schema.meta({ GraphQLType: this });
   }
 }
+
+export const GraphQLDateType = new GraphQLJoiType({
+  name: 'email',
+  schema: Joi.string().email(),
+});
