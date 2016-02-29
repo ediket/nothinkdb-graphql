@@ -26,8 +26,8 @@ export function nodeDefinitionsFromTables(options = {}) {
     },
     (obj) => {
       if (_.isNull(obj)) return null;
-      const getGraphQLType = graphQLTypes[obj._dataType];
-      return getGraphQLType();
+      const graphQLType = graphQLTypes()[obj._dataType];
+      return graphQLType;
     }
   );
 }

@@ -103,7 +103,6 @@ describe('table', () => {
         tableName: 'foo',
         schema: () => {
           return {
-            id: Joi.string(),
             email: scalarSchema.email,
           };
         },
@@ -115,7 +114,6 @@ describe('table', () => {
       });
 
       const sampleData = {
-        id: '123',
         email: 'adbc@email.com',
       };
 
@@ -134,14 +132,56 @@ describe('table', () => {
       const result = await graphql(Schema, `
         query {
           foo {
-            id
             email
           }
         }
       `);
 
       expect(result.errors).to.be.empty;
-      expect(result.data.foo).to.deep.equal(sampleData);
+      expect(result.data.foo).to.not.equal(sampleData);
+    });
+
+    it('should get nodeIdField', async () => {
+      const fooTable = new Table({
+        tableName: 'foo',
+        schema: () => {
+          return {
+            id: Joi.string(),
+          };
+        },
+      });
+
+      const Foo = new GraphQLObjectType({
+        name: 'Foo',
+        fields: getGraphQLFieldsFromTable(fooTable),
+      });
+
+      const sampleData = {
+        id: '21321',
+      };
+
+      const Schema = new GraphQLSchema({
+        query: new GraphQLObjectType({
+          name: 'Query',
+          fields: {
+            foo: {
+              type: Foo,
+              resolve: () => (sampleData),
+            },
+          },
+        }),
+      });
+
+      const result = await graphql(Schema, `
+        query {
+          foo {
+            id
+          }
+        }
+      `);
+
+      expect(result.errors).to.be.empty;
+      expect(result.data.foo).to.not.equal(sampleData);
     });
 
     it('should get graphql fields with graphql field', () => {

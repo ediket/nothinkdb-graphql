@@ -11,6 +11,9 @@ import {
   GraphQLEnumType,
 } from 'graphql';
 import {
+  globalIdField,
+} from 'graphql-relay';
+import {
   GraphQLJoiType,
   GraphQLDateType,
 } from './type';
@@ -26,7 +29,11 @@ function isJoiCollection(schema) {
 
 export function getGraphQLFieldsFromTable(table) {
   const schema = table.schema();
-  return getGraphQLfieldsFromSchema(schema);
+
+  return {
+    ...getGraphQLfieldsFromSchema(_.omit(schema, table.pk)),
+    [table.pk]: globalIdField(table.tableName),
+  };
 }
 
 export function getGraphQLfieldsFromSchema(schema, key) {

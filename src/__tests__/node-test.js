@@ -5,7 +5,6 @@ import {
   GraphQLObjectType,
 } from 'graphql';
 import{
-  globalIdField,
   toGlobalId,
 } from 'graphql-relay';
 import { Environment, r } from 'nothinkdb';
@@ -18,7 +17,6 @@ import {
 } from '../node';
 
 const USER_ID1 = '1';
-const TABLE_NAME = 'User';
 
 describe('node', () => {
   let connection;
@@ -32,9 +30,9 @@ describe('node', () => {
     const environment = new Environment({});
 
     userTable = environment.createTable({
-      tableName: TABLE_NAME,
+      tableName: 'User',
       schema: () => ({
-        id: Joi.string().meta({ GraphQLField: globalIdField(TABLE_NAME) }),
+        id: Joi.string(),
         name: Joi.string(),
       }),
     });
@@ -46,13 +44,13 @@ describe('node', () => {
 
     const { nodeField, nodeInterface } = nodeDefinitionsFromTables({
       environment,
-      graphQLTypes: {
-        [TABLE_NAME]: () => userType,
-      },
+      graphQLTypes: () => ({
+        [userTable.tableName]: userType,
+      }),
     });
 
     const userType = new GraphQLObjectType({
-      name: TABLE_NAME,
+      name: userTable.tableName,
       fields: getGraphQLFieldsFromTable(userTable),
       interfaces: [nodeInterface],
     });
@@ -81,7 +79,7 @@ describe('node', () => {
     });
 
     it(`gets the correct ID for users`, () => {
-      const globalId = toGlobalId(TABLE_NAME, USER_ID1);
+      const globalId = toGlobalId(userTable.tableName, USER_ID1);
       const query = `
         query {
           node(id: "${globalId}") {
@@ -98,7 +96,7 @@ describe('node', () => {
     });
 
     it('gets the correct name for users', () => {
-      const globalId = toGlobalId(TABLE_NAME, USER_ID1);
+      const globalId = toGlobalId(userTable.tableName, USER_ID1);
       const query = `{
         node(id: "${globalId}") {
           id
@@ -117,7 +115,7 @@ describe('node', () => {
     });
 
     it('gets the correct type name for users', () => {
-      const globalId = toGlobalId(TABLE_NAME, USER_ID1);
+      const globalId = toGlobalId(userTable.tableName, USER_ID1);
       const query = `{
         node(id: "${globalId}") {
           id
@@ -127,7 +125,7 @@ describe('node', () => {
       const expected = {
         node: {
           id: globalId,
-          __typename: TABLE_NAME,
+          __typename: userTable.tableName,
         },
       };
       return expect(graphql(schema, query)).to.become({data: expected});
@@ -159,7 +157,7 @@ describe('node', () => {
     });
 
     it('returns null for not exist data in table', () => {
-      const globalId = toGlobalId(TABLE_NAME, 3);
+      const globalId = toGlobalId(userTable.tableName, 3);
       const query = `{
         node(id: "${globalId}") {
           id
