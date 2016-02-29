@@ -10,10 +10,14 @@ import {
   GraphQLList,
   GraphQLEnumType,
 } from 'graphql';
-import GraphQLDateType from 'graphql-custom-datetype';
+import {
+  globalIdField,
+} from 'graphql-relay';
 import {
   GraphQLJoiType,
- } from './type';
+  GraphQLDateType,
+} from './type';
+
 
 function isJoi(schema) {
   return _.has(schema, 'isJoi');
@@ -25,7 +29,11 @@ function isJoiCollection(schema) {
 
 export function getGraphQLFieldsFromTable(table) {
   const schema = table.schema();
-  return getGraphQLfieldsFromSchema(schema);
+
+  return {
+    ...getGraphQLfieldsFromSchema(_.omit(schema, table.pk)),
+    [table.pk]: globalIdField(table.tableName),
+  };
 }
 
 export function getGraphQLfieldsFromSchema(schema, key) {
@@ -44,6 +52,11 @@ export function getGraphQLfieldsFromSchema(schema, key) {
     _meta: meta,
     _unit: unit,
   } = schema;
+
+  const { GraphQLField, GraphQLType: metaGraphQLType } =
+    _.reduce(meta, (result, value) => _.assignIn(result, value), {});
+
+  if (!_.isUndefined(GraphQLField)) return GraphQLField;
 
   switch (type) {
   case 'object':
@@ -89,13 +102,12 @@ export function getGraphQLfieldsFromSchema(schema, key) {
     });
   }
 
-  if (flags.presence === 'required') {
-    GraphQLType = new GraphQLNonNull(GraphQLType);
+  if (!_.isUndefined(metaGraphQLType)) {
+    GraphQLType = metaGraphQLType;
   }
 
-  const findedMeta = _.find(meta, item => item.GraphQLType);
-  if (findedMeta) {
-    GraphQLType = findedMeta.GraphQLType;
+  if (flags.presence === 'required') {
+    GraphQLType = new GraphQLNonNull(GraphQLType);
   }
 
   return _.omitBy({ type: GraphQLType, description }, _.isEmpty);

@@ -3,31 +3,23 @@ import {
   graphql,
   GraphQLSchema,
   GraphQLObjectType,
-  GraphQLNonNull,
-  GraphQLInt,
-  GraphQLFloat,
-  GraphQLString,
-  GraphQLBoolean,
-  GraphQLList,
-  GraphQLEnumType,
 } from 'graphql';
-import GraphQLDateType from 'graphql-custom-datetype';
+import{
+  globalIdField,
+} from 'graphql-relay';
 import Joi from 'joi';
 import { Table } from 'nothinkdb';
 import {
   getGraphQLFieldsFromTable,
   joiToGraphQLJoiType,
 } from '../table';
-import {
-  GraphQLJoiType,
-} from '../type';
 
 
 describe('table', () => {
   describe('getGraphQLFieldsFromTable', () => {
     it('should get graphql fields from table', async () => {
       const fooTable = new Table({
-        table: 'foo',
+        tableName: 'foo',
         schema: () => ({
           any: Joi.any(),
           required: Joi.any().required(),
@@ -45,31 +37,10 @@ describe('table', () => {
         }),
       });
 
-      const fooFields = getGraphQLFieldsFromTable(fooTable);
-
-      expect(fooFields.any.type).to.equal(GraphQLString);
-      expect(fooFields.required.type).to.deep.equal(new GraphQLNonNull(GraphQLString));
-      expect(fooFields.description).to.have.property('description', 'sample description');
-      expect(fooFields.string.type).to.equal(GraphQLString);
-      expect(fooFields.float.type).to.equal(GraphQLFloat);
-      expect(fooFields.int.type).to.equal(GraphQLInt);
-      expect(fooFields.boolean.type).to.equal(GraphQLBoolean);
-      expect(fooFields.createdAt.type).to.equal(GraphQLDateType);
-      expect(fooFields.array.type).to.deep.equal(new GraphQLList(GraphQLString));
-      expect(fooFields.object.type).to.deep.equal(new GraphQLObjectType({
-        name: 'object',
-        fields: {
-          string: fooFields.string,
-        },
-      }));
-      expect(fooFields.enum.type).to.deep.equal(new GraphQLEnumType({
-        name: 'enum',
-        values: {
-          red: { value: 'red' },
-          green: { value: 'green' },
-          blue: { value: 'blue' },
-        },
-      }));
+      const Foo = new GraphQLObjectType({
+        name: 'Foo',
+        fields: getGraphQLFieldsFromTable(fooTable),
+      });
 
       const sampleData = {
         any: 'any',
@@ -87,23 +58,16 @@ describe('table', () => {
         enum: 'red',
       };
 
-      const Foo = new GraphQLObjectType({
-        name: 'Foo',
-        fields: fooFields,
-      });
-
-      const Query = new GraphQLObjectType({
-        name: 'Query',
-        fields: {
-          foo: {
-            type: Foo,
-            resolve: () => (sampleData),
-          },
-        },
-      });
-
       const Schema = new GraphQLSchema({
-        query: Query,
+        query: new GraphQLObjectType({
+          name: 'Query',
+          fields: {
+            foo: {
+              type: Foo,
+              resolve: () => (sampleData),
+            },
+          },
+        }),
       });
 
       const result = await graphql(Schema, `
@@ -127,87 +91,180 @@ describe('table', () => {
       `);
 
       expect(result.errors).to.be.empty;
-      expect(JSON.stringify(result.data.foo))
-        .to.equal(JSON.stringify(sampleData));
+      expect(result.data.foo).to.deep.equal(sampleData);
     });
 
     it('should get graphql fields with custom Joi type', async () => {
-      const schema = {
-        id: Joi.string(),
-      };
-
       const scalarSchema = joiToGraphQLJoiType({
         email: Joi.string().email(),
       });
 
       const fooTable = new Table({
-        table: 'foo',
+        tableName: 'foo',
         schema: () => {
           return {
-            ...schema,
-            ...scalarSchema,
+            email: scalarSchema.email,
           };
         },
       });
 
-      const fooFields = getGraphQLFieldsFromTable(fooTable);
-      const expectedType = new GraphQLJoiType({
-        name: 'email',
-        schema: Joi.string().email(),
+      const Foo = new GraphQLObjectType({
+        name: 'Foo',
+        fields: getGraphQLFieldsFromTable(fooTable),
       });
 
-      expect(fooFields.id.type).to.equal(GraphQLString);
-      expect(fooFields.email.type.name)
-        .to.equal(expectedType.name);
-      expect(fooFields.email.type.schema.meta)
-        .to.deep.equal(expectedType.schema.meta);
+      const sampleData = {
+        email: 'adbc@email.com',
+      };
+
+      const Schema = new GraphQLSchema({
+        query: new GraphQLObjectType({
+          name: 'Query',
+          fields: {
+            foo: {
+              type: Foo,
+              resolve: () => (sampleData),
+            },
+          },
+        }),
+      });
+
+      const result = await graphql(Schema, `
+        query {
+          foo {
+            email
+          }
+        }
+      `);
+
+      expect(result.errors).to.be.empty;
+      expect(result.data.foo).to.not.equal(sampleData);
+    });
+
+    it('should get nodeIdField', async () => {
+      const fooTable = new Table({
+        tableName: 'foo',
+        schema: () => {
+          return {
+            id: Joi.string(),
+          };
+        },
+      });
+
+      const Foo = new GraphQLObjectType({
+        name: 'Foo',
+        fields: getGraphQLFieldsFromTable(fooTable),
+      });
+
+      const sampleData = {
+        id: '21321',
+      };
+
+      const Schema = new GraphQLSchema({
+        query: new GraphQLObjectType({
+          name: 'Query',
+          fields: {
+            foo: {
+              type: Foo,
+              resolve: () => (sampleData),
+            },
+          },
+        }),
+      });
+
+      const result = await graphql(Schema, `
+        query {
+          foo {
+            id
+          }
+        }
+      `);
+
+      expect(result.errors).to.be.empty;
+      expect(result.data.foo).to.not.equal(sampleData);
+    });
+
+    it('should get graphql fields with graphql field', () => {
+      const fooTable = new Table({
+        tableName: 'foo',
+        schema: () => ({
+          id: Joi.string().meta({ GraphQLField: globalIdField('user')}),
+        }),
+      });
+
+      const fooFields = getGraphQLFieldsFromTable(fooTable);
+      expect(JSON.stringify(fooFields.id)).to.equal(JSON.stringify(globalIdField('user')));
     });
 
     it('should get graphql fields with nested Joi schema', async () => {
-      const schema = {
-        contact: Joi.object().keys({
-          phone: {
-            home: Joi.string(),
-            cell: Joi.string(),
-          },
-        }),
-        notes: Joi.array().items(
-          Joi.object().keys({
-            from: Joi.string(),
-            subject: Joi.string(),
-          }).unit('note')
-        ),
-      };
-
       const userTable = new Table({
-        table: 'user',
-        schema: () => schema,
+        tableName: 'user',
+        schema: () => ({
+          contact: Joi.object().keys({
+            phone: {
+              home: Joi.string(),
+              cell: Joi.string(),
+            },
+          }),
+          notes: Joi.array().items(
+            Joi.object().keys({
+              from: Joi.string(),
+              subject: Joi.string(),
+            }).unit('note')
+          ),
+        }),
       });
 
-      const userFields = getGraphQLFieldsFromTable(userTable);
-      expect(userFields.contact.type).to.deep.equal(new GraphQLObjectType({
-        name: 'contact',
-        fields: {
+      const UserType = new GraphQLObjectType({
+        name: 'User',
+        fields: getGraphQLFieldsFromTable(userTable),
+      });
+
+      const sampleData = {
+        contact: {
           phone: {
-            type: new GraphQLObjectType({
-              name: 'phone',
-              fields: {
-                home: { type: GraphQLString },
-                cell: { type: GraphQLString },
-              },
-            }),
+            home: '010-111-1111',
+            cell: '02-11-111',
           },
         },
-      }));
-      expect(userFields.notes.type).to.deep.equal(new GraphQLList(
-        new GraphQLObjectType({
-          name: 'note',
-          fields: {
-            from: { type: GraphQLString },
-            subject: { type: GraphQLString },
+        notes: [
+          {
+            from: 'john',
+            subject: 'hi',
           },
-        })
-      ));
+        ],
+      };
+
+      const schema = new GraphQLSchema({
+        query: new GraphQLObjectType({
+          name: 'RootQueryType',
+          fields: {
+            user: {
+              type: UserType,
+              resolve: () => sampleData,
+            },
+          },
+        }),
+      });
+
+      const result = await graphql(schema, `
+        query {
+          user {
+            contact {
+              phone {
+                home
+                cell
+              }
+            }
+            notes {
+              from
+              subject
+            }
+          }
+        }
+      `);
+
+      expect(result.data.user).to.deep.equal(sampleData);
     });
   });
 });

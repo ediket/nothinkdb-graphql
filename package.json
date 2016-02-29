@@ -7,7 +7,7 @@
     "lib"
   ],
   "scripts": {
-    "test": "mocha --compilers js:babel/register --timeout 20000 ./src/**/__tests__/*-test.js",
+    "test": "mocha --require ./scripts/mocha-require.js --timeout 20000 ./src/**/__tests__/*-test.js",
     "build": "babel --ignore *-test.js -d lib src",
     "clean": "rimraf lib",
     "lint": "eslint src",
@@ -33,6 +33,7 @@
     "babel": "^5.8.35",
     "babel-eslint": "^4.1.7",
     "chai": "^3.4.1",
+    "chai-as-promised": "^5.2.0",
     "eslint": "^1.10.3",
     "eslint-config-airbnb": "^0.1.0",
     "mocha": "^2.4.5",
@@ -40,11 +41,10 @@
   },
   "dependencies": {
     "graphql": "^0.4.17",
-    "graphql-custom-datetype": "^0.2.1",
     "graphql-relay": "^0.3.6",
     "joi": "^8.0.1",
     "lodash": "^4.4.0",
-    "nothinkdb": "^0.3.0",
+    "nothinkdb": "^0.4.3",
     "rethinkdb": "^2.2.1"
   }
 }
