@@ -15,7 +15,7 @@ import {
 } from '../table';
 
 
-describe.only('table', () => {
+describe('table', () => {
   describe('getGraphQLFieldsFromTable', () => {
     it('should get graphql fields from table', async () => {
       const fooTable = new Table({
