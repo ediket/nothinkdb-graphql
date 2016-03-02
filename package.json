@@ -1,6 +1,6 @@
 {
   "name": "nothinkdb-graphql",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Graphql & Relay for rethinkdb via nothinkdb",
   "main": "lib",
   "files": [
@@ -15,7 +15,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/ironhee/nothinkdb-graphql.git"
+    "url": "git+ssh://git@github.com/ediket/nothinkdb-graphql.git"
   },
   "keywords": [
     "rethinkdb",
@@ -26,9 +26,9 @@
   "author": "ironhee <leechulhee95@gmail.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/ironhee/nothinkdb-graphql/issues"
+    "url": "https://github.com/ediket/nothinkdb-graphql/issues"
   },
-  "homepage": "https://github.com/ironhee/nothinkdb-graphql#readme",
+  "homepage": "https://github.com/ediket/nothinkdb-graphql#readme",
   "devDependencies": {
     "babel": "^5.8.35",
     "babel-eslint": "^4.1.7",
