@@ -1,3 +1,3 @@
-[![Build Status](https://travis-ci.org/ironhee/nothinkdb-graphql.svg?branch=master)](https://travis-ci.org/ironhee/nothinkdb-graphql)
+[![Build Status](https://travis-ci.org/ediket/nothinkdb-graphql.svg?branch=master)](https://travis-ci.org/ediket/nothinkdb-graphql)
 
 # Nothinkdb-Graphql
