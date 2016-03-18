@@ -148,14 +148,14 @@ export function assertConnectionArgs({ first, last }) {
 
 export function connectionField({
   table,
-  nodeType,
+  graphQLType,
   filterFields,
   connection: getConnection,
   query = table.query().orderBy(r.desc('createdAt')),
 }) {
   const { connectionType } = connectionDefinitions({
-    nodeType,
-    name: nodeType.name + 'Connection',
+    nodeType: graphQLType,
+    name: graphQLType.name + 'Connection',
   });
 
   return {

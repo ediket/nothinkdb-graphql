@@ -356,11 +356,11 @@ describe('connection', () => {
       const { nodeInterface } = nodeDefinitionsFromTables({
         environment,
         graphQLTypes: () => ({
-          [table.tableName]: nodeType,
+          [table.tableName]: graphQLType,
         }),
       });
 
-      const nodeType = new GraphQLObjectType({
+      const graphQLType = new GraphQLObjectType({
         name: table.tableName,
         fields: getGraphQLFieldsFromTable(table),
         interfaces: [nodeInterface],
@@ -373,7 +373,7 @@ describe('connection', () => {
         fields: () => ({
           connection: connectionField({
             table,
-            nodeType,
+            graphQLType,
             query: connectionQuery,
             connection: () => r.connect(),
           }),
