@@ -1,6 +1,6 @@
 {
   "name": "nothinkdb-graphql",
-  "version": "0.0.4",
+  "version": "0.1.0",
   "description": "Graphql & Relay for rethinkdb via nothinkdb",
   "main": "lib",
   "files": [
@@ -29,6 +29,9 @@
     "url": "https://github.com/ediket/nothinkdb-graphql/issues"
   },
   "homepage": "https://github.com/ediket/nothinkdb-graphql#readme",
+  "peerDependencies": {
+    "rethinkdb": "^2.x"
+  },
   "devDependencies": {
     "babel": "^5.8.35",
     "babel-eslint": "^4.1.7",
@@ -45,6 +48,6 @@
     "joi": "^8.0.1",
     "lodash": "^4.4.0",
     "nothinkdb": "^0.4.3",
-    "rethinkdb": "^2.2.1"
+    "rethinkdb": "^2.2.2"
   }
 }
