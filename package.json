@@ -40,14 +40,14 @@
     "eslint": "^1.10.3",
     "eslint-config-airbnb": "^0.1.0",
     "mocha": "^2.4.5",
-    "rimraf": "^2.5.1"
+    "rimraf": "^2.5.1",
+    "rethinkdb": "^2.2.2"
   },
   "dependencies": {
     "graphql": "^0.4.17",
     "graphql-relay": "^0.3.6",
     "joi": "^8.0.1",
     "lodash": "^4.4.0",
-    "nothinkdb": "^0.4.3",
-    "rethinkdb": "^2.2.2"
+    "nothinkdb": "^0.4.3"
   }
 }
