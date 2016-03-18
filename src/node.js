@@ -1,4 +1,4 @@
-import { r } from 'nothinkdb';
+import r from 'rethinkdb';
 import _ from 'lodash';
 import {
   nodeDefinitions,
