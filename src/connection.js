@@ -5,7 +5,7 @@
   - https://github.com/graphql/graphql-relay-js/blob/master/src/connection/arrayconnection.js
 */
 import _ from 'lodash';
-import { r } from 'nothinkdb';
+import r from 'rethinkdb';
 import {
   fromGlobalId,
   toGlobalId,

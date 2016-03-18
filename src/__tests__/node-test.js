@@ -7,7 +7,8 @@ import {
 import{
   toGlobalId,
 } from 'graphql-relay';
-import { Environment, r } from 'nothinkdb';
+import r from 'rethinkdb';
+import { Environment } from 'nothinkdb';
 import Joi from 'joi';
 import {
   getGraphQLFieldsFromTable,

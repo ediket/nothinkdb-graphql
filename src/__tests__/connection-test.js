@@ -1,6 +1,7 @@
 import { expect } from 'chai';
 import _ from 'lodash';
-import { Environment, schema, r } from 'nothinkdb';
+import r from 'rethinkdb';
+import { Environment, schema } from 'nothinkdb';
 import Joi from 'joi';
 import {
   graphql,
