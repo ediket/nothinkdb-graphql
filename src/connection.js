@@ -155,7 +155,7 @@ export function connectionField({
 }) {
   const { connectionType } = connectionDefinitions({
     nodeType: graphQLType,
-    name: graphQLType.name + 'Connection',
+    name: graphQLType.name,
   });
 
   return {
