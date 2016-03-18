@@ -11,7 +11,7 @@ import { Environment, r } from 'nothinkdb';
 import Joi from 'joi';
 import {
   getGraphQLFieldsFromTable,
-} from '../table';
+} from '../field';
 import {
   nodeDefinitionsFromTables,
 } from '../node';

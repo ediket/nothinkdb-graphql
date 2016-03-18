@@ -1,3 +1,4 @@
 export * from './connection';
 export * from './context';
-export * from './table';
+export * from './field';
+export Table from './Table';

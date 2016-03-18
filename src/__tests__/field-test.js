@@ -12,7 +12,7 @@ import { Table } from 'nothinkdb';
 import {
   getGraphQLFieldsFromTable,
   joiToGraphQLJoiType,
-} from '../table';
+} from '../field';
 
 
 describe('table', () => {

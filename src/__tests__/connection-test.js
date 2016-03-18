@@ -1,7 +1,15 @@
 import { expect } from 'chai';
 import _ from 'lodash';
-import { Table, schema, r } from 'nothinkdb';
+import { Environment, schema, r } from 'nothinkdb';
 import Joi from 'joi';
+import {
+  graphql,
+  GraphQLObjectType,
+  GraphQLSchema,
+} from 'graphql';
+import {
+  toGlobalId,
+} from 'graphql-relay';
 import {
   nodeIdToCursor,
   cursorToNodeId,
@@ -12,7 +20,14 @@ import {
   edgeOffsetsToReturn,
   dataToEdge,
   connectionArgsToOffsets,
+  connectionField,
 } from '../connection';
+import {
+  getGraphQLFieldsFromTable,
+} from '../field';
+import {
+  nodeDefinitionsFromTables,
+} from '../node';
 
 const TABLE = 'arrayConnectionTest';
 
@@ -20,15 +35,18 @@ describe('connection', () => {
   let table;
   let connection;
   let orderedQuery;
+  let environment;
 
   before(async () => {
     connection = await r.connect({ db: 'test' });
-    table = new Table({
+    environment = new Environment({});
+    table = environment.createTable({
       tableName: TABLE,
       schema: () => ({
         ...schema,
       }),
     });
+    await environment.sync(connection);
     await table.sync(connection);
     await table.query().delete().run(connection);
     await table.insert(_.times(20, () => ({}))).run(connection);
@@ -330,6 +348,63 @@ describe('connection', () => {
       expect(beforeOffset).to.equal(14);
       expect(startOffset).to.equal(6);
       expect(endOffset).to.equal(14);
+    });
+  });
+
+  describe('connectionFieldFromTable', () => {
+    it('should return connection field', async () => {
+      const { nodeInterface } = nodeDefinitionsFromTables({
+        environment,
+        graphQLTypes: () => ({
+          [table.tableName]: nodeType,
+        }),
+      });
+
+      const nodeType = new GraphQLObjectType({
+        name: table.tableName,
+        fields: getGraphQLFieldsFromTable(table),
+        interfaces: [nodeInterface],
+      });
+
+      const connectionQuery = table.query().orderBy(r.desc('createdAt'));
+
+      const queryType = new GraphQLObjectType({
+        name: 'Query',
+        fields: () => ({
+          connection: connectionField({
+            table,
+            nodeType,
+            query: connectionQuery,
+            connection: () => r.connect(),
+          }),
+        }),
+      });
+
+      const Schema = new GraphQLSchema({
+        query: queryType,
+      });
+
+      const query = `{
+        connection(first: 1) {
+          edges {
+            node {
+              id
+            }
+          }
+        }
+      }`;
+      const dataId = await connectionQuery.nth(0)('id').run(connection);
+      return expect(graphql(Schema, query)).to.become({
+        data: {
+          connection: {
+            edges: [{
+              node: {
+                id: toGlobalId(table.tableName, dataId),
+              },
+            }],
+          },
+        },
+      });
     });
   });
 });

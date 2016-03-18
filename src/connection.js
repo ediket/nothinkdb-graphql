@@ -1,13 +1,24 @@
+/* eslint no-param-reassign: 0 */
 /*
   Related Links
   - https://github.com/graphql/graphql-relay-js#connections
   - https://github.com/graphql/graphql-relay-js/blob/master/src/connection/arrayconnection.js
 */
 import _ from 'lodash';
-import { fromGlobalId, toGlobalId } from 'graphql-relay';
-import { GraphQLError } from 'graphql/error';
 import { r } from 'nothinkdb';
+import {
+  fromGlobalId,
+  toGlobalId,
+  connectionArgs,
+  connectionDefinitions,
+} from 'graphql-relay';
+import { GraphQLInputObjectType } from 'graphql';
+import { GraphQLError } from 'graphql/error';
 import { base64, unbase64 } from './base64';
+import {
+  getFieldsFromContext,
+  getRelationsFromFields,
+} from './context';
 
 
 const PREFIX = 'arrayconnection:';
@@ -34,7 +45,7 @@ export function cursorToPk(cursor) {
 export function dataToEdge(table, data) {
   const pk = data[table.pk];
   return {
-    cursor: pkToCursor(table.table, pk),
+    cursor: pkToCursor(table.tableName, pk),
     node: data,
   };
 }
@@ -133,4 +144,77 @@ export function assertConnectionArgs({ first, last }) {
   if (_.some([first, last], (amount) => _.isNumber(amount) && amount <= 0)) {
     throw new GraphQLError('first and last must more than 0');
   }
+}
+
+export function connectionField({
+  table,
+  nodeType,
+  filterFields,
+  connection: getConnection,
+  query = table.query().orderBy(r.desc('createdAt')),
+}) {
+  const { connectionType } = connectionDefinitions({
+    nodeType,
+    name: nodeType.name + 'Connection',
+  });
+
+  return {
+    type: connectionType,
+    args: Object.assign({
+      ...(filterFields ? {
+        filters: {
+          name: `${name}Filters`,
+          type: new GraphQLInputObjectType({
+            name: `${name}FilterFields`,
+            fields: filterFields,
+          }),
+        },
+      } : {}),
+    }, connectionArgs),
+    resolve: async (root, args, context) => {
+      const { after, before, last, filters } = args;
+      let { first } = args;
+      if (_.every([first, last], _.isUndefined)) { first = 10; }
+
+      const relations = getRelationsFromFields(
+        getFieldsFromContext(context).edges.node
+      );
+
+      if (filters) {
+        query = query.filter(filters);
+      }
+
+      const { afterOffset, beforeOffset, startOffset, endOffset } =
+        await connectionArgsToOffsets(query, { after, before, first, last });
+
+
+      query = query.slice(startOffset, endOffset.add(1));
+
+      if (_.isObject(relations) && !_.isEmpty(relations)) {
+        query = table.withJoin(query, relations);
+      }
+
+      const connection = await getConnection();
+      const rows = await query.run(connection);
+      await connection.close();
+
+      const edges = rows.map(row => dataToEdge(table, row));
+      const firstEdge = _.head(edges);
+      const lastEdge = _.last(edges);
+      const edgesLength = beforeOffset - afterOffset + 1;
+
+      return {
+        edges,
+        pageInfo: {
+          startCursor: firstEdge ? firstEdge.cursor : null,
+          endCursor: lastEdge ? lastEdge.cursor : null,
+          hasPreviousPage: last !== undefined &&
+            startOffset > 0 ?
+            edgesLength > last : false,
+          hasNextPage: first !== undefined ?
+            edgesLength > first : false,
+        },
+      };
+    },
+  };
 }
