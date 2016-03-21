@@ -1,9 +1,4 @@
 /* eslint no-param-reassign: 0 */
-/*
-  Related Links
-  - https://github.com/graphql/graphql-relay-js#connections
-  - https://github.com/graphql/graphql-relay-js/blob/master/src/connection/arrayconnection.js
-*/
 import _ from 'lodash';
 import r from 'rethinkdb';
 import {
@@ -65,6 +60,32 @@ export function assertConnectionArgs({ first, last }) {
   }
 }
 
+export function applyFiltersToQuery(query, filters) {
+  return query.filter(filters);
+}
+
+
+// https://facebook.github.io/relay/graphql/connections.htm#ApplyCursorsToEdges()
+export function applyCursorsToQuery(query, { after, before }) {
+  return query.slice(
+    after ? pkToOffset(query, cursorToPk(after)).add(1) : 0,
+    before ? pkToOffset(query, cursorToPk(before)) : undefined,
+  );
+}
+
+// https://facebook.github.io/relay/graphql/connections.htm#EdgesToReturn()
+export function applyLimitsToQuery(query, { first, last }) {
+  if (_.isNumber(first)) {
+    query = query.limit(first);
+  }
+
+  if (_.isNumber(last)) {
+    query = query.coerceTo('array').slice(last * -1);
+  }
+
+  return query;
+}
+
 export function connectionField({
   table,
   graphQLType,
@@ -100,35 +121,17 @@ export function connectionField({
 
       let _query = query;
 
-      if (filters) {
-        _query = _query.filter(filters);
+      if (_.isObject(filters) && !_.isEmpty(filters)) {
+        _query = applyFiltersToQuery(_query, filters);
       }
-
-      let afterId;
-      if (after) {
-        afterId = cursorToPk(after);
-      }
-
-      let beforeId;
-      if (before) {
-        beforeId = cursorToPk(before);
-      }
-
-      _query = _query.slice(
-        afterId ? pkToOffset(_query, afterId).add(1) : 0,
-        beforeId ? pkToOffset(_query, beforeId) : undefined,
-      );
 
       const connection = await getConnection();
+
+      _query = applyCursorsToQuery(_query, { after, before });
+
       const edgesLength = await _query.count().run(connection);
 
-      if (_.isNumber(first)) {
-        _query = _query.limit(first);
-      }
-
-      if (_.isNumber(last)) {
-        _query = _query.coerceTo('array').slice(last * -1);
-      }
+      _query = applyLimitsToQuery(_query, { first, last });
 
       if (_.isObject(relations) && !_.isEmpty(relations)) {
         _query = table.withJoin(_query, relations);
