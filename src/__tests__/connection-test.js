@@ -367,15 +367,13 @@ describe('connection', () => {
         interfaces: [nodeInterface],
       });
 
-      const connectionQuery = table.query().orderBy(r.desc('createdAt'));
-
       const queryType = new GraphQLObjectType({
         name: 'Query',
         fields: () => ({
           connection: connectionField({
             table,
             graphQLType,
-            query: connectionQuery,
+            query: orderedQuery,
             connection: () => r.connect(),
           }),
         }),
@@ -386,21 +384,40 @@ describe('connection', () => {
       });
 
       const query = `{
-        connection(first: 1) {
+        connection(first: 2) {
+          pageInfo {
+            hasNextPage
+            hasPreviousPage
+            endCursor
+            startCursor
+          }
           edges {
+            cursor
             node {
               id
             }
           }
         }
       }`;
-      const dataId = await connectionQuery.nth(0)('id').run(connection);
+      const data = await orderedQuery.slice(0, 2).run(connection);
       return expect(graphql(Schema, query)).to.become({
         data: {
           connection: {
+            pageInfo: {
+              hasNextPage: true,
+              hasPreviousPage: false,
+              endCursor: pkToCursor(table.tableName, data[1].id),
+              startCursor: pkToCursor(table.tableName, data[0].id),
+            },
             edges: [{
+              cursor: pkToCursor(table.tableName, data[0].id),
               node: {
-                id: toGlobalId(table.tableName, dataId),
+                id: toGlobalId(table.tableName, data[0].id),
+              },
+            }, {
+              cursor: pkToCursor(table.tableName, data[1].id),
+              node: {
+                id: toGlobalId(table.tableName, data[1].id),
               },
             }],
           },

@@ -196,12 +196,12 @@ export function connectionField({
 
       const connection = await getConnection();
       const rows = await query.run(connection);
+      const edgesLength = await beforeOffset.sub(afterOffset).add(1).run(connection);
       await connection.close();
 
       const edges = rows.map(row => dataToEdge(table, row));
       const firstEdge = _.head(edges);
       const lastEdge = _.last(edges);
-      const edgesLength = beforeOffset - afterOffset + 1;
 
       return {
         edges,
