@@ -29,7 +29,7 @@ import {
 const TABLE = 'ConnectionTest';
 const TABLE_SIZE = 5000;
 
-describe.only('connection', () => {
+describe('connection', () => {
   let table;
   let connection;
   let orderedQuery;
