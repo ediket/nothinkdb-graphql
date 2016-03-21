@@ -59,87 +59,6 @@ export function cursorToOffset(query, cursor) {
   return pkToOffset(query, cursorToPk(cursor));
 }
 
-// https://facebook.github.io/relay/graphql/connections.htm#ApplyCursorsToEdgeOffsets()
-export function applyCursorsToEdgeOffsets(query, args) {
-  const { after, before } = args;
-
-  let afterOffset;
-  if (after) {
-    afterOffset = cursorToOffset(query, after);
-    afterOffset = r.branch(
-      afterOffset,
-      afterOffset.add(1),
-      0
-    );
-  } else {
-    afterOffset = r.expr(0);
-  }
-
-  let beforeOffset;
-  if (before) {
-    beforeOffset = cursorToOffset(query, before);
-    beforeOffset = r.branch(
-      beforeOffset,
-      r.expr([beforeOffset, afterOffset, 0]).max().sub(1),
-      0
-    );
-  } else {
-    const lastRow = query.nth(-1);
-    beforeOffset = r.branch(
-      lastRow,
-      query.offsetsOf(lastRow).nth(0),
-      0
-    );
-  }
-
-  return { afterOffset, beforeOffset };
-}
-
-// https://facebook.github.io/relay/graphql/connections.htm#EdgesToReturn()
-export function edgeOffsetsToReturn({
-  afterOffset, beforeOffset,
-}, {
-  first, last,
-}) {
-  assertConnectionArgs({ first, last });
-
-  let startOffset = _.isNumber(afterOffset) ? r.expr(afterOffset) : afterOffset;
-  let endOffset = _.isNumber(beforeOffset) ? r.expr(beforeOffset) : beforeOffset;
-
-  if (_.isNumber(first)) {
-    endOffset = r.branch(
-      endOffset.sub(startOffset).add(1).gt(first),
-      startOffset.add(first).sub(1),
-      endOffset
-    );
-  }
-
-  if (_.isNumber(last)) {
-    startOffset = r.branch(
-      endOffset.sub(startOffset).add(1).gt(last),
-      r.expr([endOffset.sub(last).add(1), startOffset, 0]).max(),
-      startOffset
-    );
-  }
-
-  return { startOffset, endOffset };
-}
-
-export function connectionArgsToOffsets(query, { after, first, before, last }) {
-  assertConnectionArgs({ first, last });
-
-  const { afterOffset, beforeOffset } = applyCursorsToEdgeOffsets(
-    query, { after, before }
-  );
-
-  const { startOffset, endOffset } = edgeOffsetsToReturn(
-    { afterOffset, beforeOffset },
-    { first, last }
-  );
-
-  return { afterOffset, beforeOffset, startOffset, endOffset };
-}
-
 export function assertConnectionArgs({ first, last }) {
   if (_.some([first, last], (amount) => _.isNumber(amount) && amount <= 0)) {
     throw new GraphQLError('first and last must more than 0');
@@ -172,31 +91,50 @@ export function connectionField({
       } : {}),
     }, connectionArgs),
     resolve: async (root, args, context) => {
-      const { after, before, last, filters } = args;
-      let { first } = args;
-      if (_.every([first, last], _.isUndefined)) { first = 10; }
+      const { after, before, first, last, filters } = args;
+      assertConnectionArgs({ first, last });
 
       const relations = getRelationsFromFields(
         getFieldsFromContext(context).edges.node
       );
 
+      let _query = query;
+
       if (filters) {
-        query = query.filter(filters);
+        _query = _query.filter(filters);
       }
 
-      const { afterOffset, beforeOffset, startOffset, endOffset } =
-        await connectionArgsToOffsets(query, { after, before, first, last });
-
-
-      query = query.slice(startOffset, endOffset.add(1));
-
-      if (_.isObject(relations) && !_.isEmpty(relations)) {
-        query = table.withJoin(query, relations);
+      let afterId;
+      if (after) {
+        afterId = cursorToPk(after);
       }
+
+      let beforeId;
+      if (before) {
+        beforeId = cursorToPk(before);
+      }
+
+      _query = _query.slice(
+        afterId ? pkToOffset(_query, afterId).add(1) : 0,
+        beforeId ? pkToOffset(_query, beforeId) : undefined,
+      );
 
       const connection = await getConnection();
-      const rows = await query.coerceTo('array').run(connection);
-      const edgesLength = await beforeOffset.sub(afterOffset).add(1).run(connection);
+      const edgesLength = await _query.count().run(connection);
+
+      if (_.isNumber(first)) {
+        _query = _query.limit(first);
+      }
+
+      if (_.isNumber(last)) {
+        _query = _query.coerceTo('array').slice(last * -1);
+      }
+
+      if (_.isObject(relations) && !_.isEmpty(relations)) {
+        _query = table.withJoin(_query, relations);
+      }
+
+      const rows = await _query.coerceTo('array').run(connection);
       await connection.close();
 
       const edges = rows.map(row => dataToEdge(table, row));
@@ -208,8 +146,7 @@ export function connectionField({
         pageInfo: {
           startCursor: firstEdge ? firstEdge.cursor : null,
           endCursor: lastEdge ? lastEdge.cursor : null,
-          hasPreviousPage: last !== undefined &&
-            startOffset > 0 ?
+          hasPreviousPage: last !== undefined ?
             edgesLength > last : false,
           hasNextPage: first !== undefined ?
             edgesLength > first : false,

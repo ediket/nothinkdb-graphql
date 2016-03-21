@@ -16,11 +16,7 @@ import {
   cursorToNodeId,
   pkToCursor,
   cursorToPk,
-  pkToOffset,
-  applyCursorsToEdgeOffsets,
-  edgeOffsetsToReturn,
   dataToEdge,
-  connectionArgsToOffsets,
   connectionField,
 } from '../connection';
 import {
@@ -30,9 +26,10 @@ import {
   nodeDefinitionsFromTables,
 } from '../node';
 
-const TABLE = 'arrayConnectionTest';
+const TABLE = 'ConnectionTest';
+const TABLE_SIZE = 5000;
 
-describe('connection', () => {
+describe.only('connection', () => {
   let table;
   let connection;
   let orderedQuery;
@@ -45,17 +42,22 @@ describe('connection', () => {
       tableName: TABLE,
       schema: () => ({
         ...schema,
+        nth: Joi.number().meta({ index: true }),
       }),
     });
     await environment.sync(connection);
-    await table.sync(connection);
     await table.query().delete().run(connection);
-    await table.insert(_.times(20, () => ({}))).run(connection);
-    orderedQuery = table.query().orderBy('id');
+    await table.insert(
+      _.times(TABLE_SIZE, (nth) => ({
+        nth,
+        id: `${nth}`,
+      }))
+    ).run(connection);
+    orderedQuery = table.query().orderBy({ index: r.asc('nth') });
   });
 
   after(async () => {
-    await r.tableDrop(table.tableName).run(connection);
+    await r.tableDrop(TABLE).run(connection);
   });
 
   describe('nodeIdToCursor, cursorToNodeId', () => {
@@ -76,14 +78,6 @@ describe('connection', () => {
     });
   });
 
-  describe('pkToOffset', () => {
-    it('should transform pk to offset', async () => {
-      const resource = await orderedQuery.nth(10).run(connection);
-      const offset = await pkToOffset(orderedQuery, resource.id).run(connection);
-      expect(offset).to.equal(10);
-    });
-  });
-
   describe('dataToEdge', () => {
     it('should transform data to edge', async () => {
       const resource = table.query().nth(0).run(connection);
@@ -96,273 +90,19 @@ describe('connection', () => {
     });
   });
 
-  describe('applyCursorsToEdgeOffsets', () => {
-    it('should return edgeOffsets of cursors with before', async () => {
-      const resource = await orderedQuery.nth(10).run(connection);
-      const {
-        afterOffset,
-        beforeOffset,
-      } = await r.expr(
-        applyCursorsToEdgeOffsets(orderedQuery, {
-          before: pkToCursor(TABLE, resource.id),
-        })
-      ).run(connection);
-      expect(afterOffset).to.equal(0);
-      expect(beforeOffset).to.equal(9);
-    });
+  describe('connectionField', () => {
+    let Schema;
 
-    it('should return edgeOffsets of cursors with after', async () => {
-      const resource = await orderedQuery.nth(10).run(connection);
-      const {
-        afterOffset,
-        beforeOffset,
-      } = await r.expr(
-        applyCursorsToEdgeOffsets(orderedQuery, {
-          after: pkToCursor(TABLE, resource.id),
-        })
-      ).run(connection);
-      expect(afterOffset).to.equal(11);
-      expect(beforeOffset).to.equal(19);
-    });
-
-    it('should return edgeOffsets of cursors with both', async () => {
-      const afterResource = await orderedQuery.nth(5).run(connection);
-      const beforeResource = await orderedQuery.nth(15).run(connection);
-      const {
-        afterOffset,
-        beforeOffset,
-      } = await r.expr(
-        applyCursorsToEdgeOffsets(orderedQuery, {
-          after: pkToCursor(TABLE, afterResource.id),
-          before: pkToCursor(TABLE, beforeResource.id),
-        })
-      ).run(connection);
-      expect(afterOffset).to.equal(6);
-      expect(beforeOffset).to.equal(14);
-    });
-  });
-
-  describe('edgeOffsetsToReturn', () => {
-    it('should throws error with first: 0', () => {
-      expect(
-        () => edgeOffsetsToReturn({
-          afterOffset: 0,
-          beforeOffset: 19,
-        }, {
-          first: 0,
-        })
-      ).to.throw(Error);
-    });
-
-    it('should throws error with last: 0', () => {
-      expect(
-        () => edgeOffsetsToReturn({
-          afterOffset: 0,
-          beforeOffset: 10,
-        }, {
-          first: 0,
-        })
-      ).to.throw(Error);
-    });
-
-    it('should throws error with both: 0', () => {
-      expect(
-        () => edgeOffsetsToReturn({
-          afterOffset: 0,
-          beforeOffset: 10,
-        }, {
-          first: 0,
-          last: 0,
-        })
-      ).to.throw(Error);
-    });
-
-    it('should return edgeOffsets with first: half', async () => {
-      const { startOffset, endOffset } = await r.expr(
-        edgeOffsetsToReturn({
-          afterOffset: 0,
-          beforeOffset: 19,
-        }, {
-          first: 10,
-        })
-      ).run(connection);
-      expect(startOffset).to.equal(0);
-      expect(endOffset).to.equal(9);
-    });
-
-    it('should return edgeOffsets with last: half', async () => {
-      const { startOffset, endOffset } = await r.expr(
-        edgeOffsetsToReturn({
-          afterOffset: 0,
-          beforeOffset: 19,
-        }, {
-          last: 10,
-        })
-      ).run(connection);
-      expect(startOffset).to.equal(10);
-      expect(endOffset).to.equal(19);
-    });
-
-    it('should return edgeOffsets with both', async () => {
-      const { startOffset, endOffset } = await r.expr(
-        edgeOffsetsToReturn({
-          afterOffset: 0,
-          beforeOffset: 9,
-        }, {
-          first: 9,
-          last: 8,
-        })
-      ).run(connection);
-      expect(startOffset).to.equal(1);
-      expect(endOffset).to.equal(8);
-    });
-  });
-
-  describe('connectionArgsToOffsets', () => {
-    it('should return offsets with before', async () => {
-      const resource = await orderedQuery.nth(10).run(connection);
-      const {
-        afterOffset,
-        beforeOffset,
-        startOffset,
-        endOffset,
-      } = await r.expr(
-        connectionArgsToOffsets(orderedQuery, {
-          before: pkToCursor(TABLE, resource.id),
-        })
-      ).run(connection);
-      expect(afterOffset).to.equal(0);
-      expect(beforeOffset).to.equal(9);
-      expect(startOffset).to.equal(0);
-      expect(endOffset).to.equal(9);
-    });
-
-    it('should return offsets with before & first', async () => {
-      const resource = await orderedQuery.nth(10).run(connection);
-      const {
-        afterOffset,
-        beforeOffset,
-        startOffset,
-        endOffset,
-      } = await r.expr(
-        connectionArgsToOffsets(orderedQuery, {
-          before: pkToCursor(TABLE, resource.id),
-          first: 5,
-        })
-      ).run(connection);
-      expect(afterOffset).to.equal(0);
-      expect(beforeOffset).to.equal(9);
-      expect(startOffset).to.equal(0);
-      expect(endOffset).to.equal(4);
-    });
-
-    it('should return offsets with before & last', async () => {
-      const resource = await orderedQuery.nth(10).run(connection);
-      const {
-        afterOffset,
-        beforeOffset,
-        startOffset,
-        endOffset,
-      } = await r.expr(
-        connectionArgsToOffsets(orderedQuery, {
-          before: pkToCursor(TABLE, resource.id),
-          last: 5,
-        })
-      ).run(connection);
-      expect(afterOffset).to.equal(0);
-      expect(beforeOffset).to.equal(9);
-      expect(startOffset).to.equal(5);
-      expect(endOffset).to.equal(9);
-    });
-
-    it('should return offsets with after', async () => {
-      const resource = await orderedQuery.nth(10).run(connection);
-      const {
-        afterOffset,
-        beforeOffset,
-        startOffset,
-        endOffset,
-      } = await r.expr(
-        connectionArgsToOffsets(orderedQuery, {
-          after: pkToCursor(TABLE, resource.id),
-        })
-      ).run(connection);
-      expect(afterOffset).to.equal(11);
-      expect(beforeOffset).to.equal(19);
-      expect(startOffset).to.equal(11);
-      expect(endOffset).to.equal(19);
-    });
-
-    it('should return offsets with after & first', async () => {
-      const resource = await orderedQuery.nth(10).run(connection);
-      const {
-        afterOffset,
-        beforeOffset,
-        startOffset,
-        endOffset,
-      } = await r.expr(
-        connectionArgsToOffsets(orderedQuery, {
-          after: pkToCursor(TABLE, resource.id),
-          first: 5,
-        })
-      ).run(connection);
-      expect(afterOffset).to.equal(11);
-      expect(beforeOffset).to.equal(19);
-      expect(startOffset).to.equal(11);
-      expect(endOffset).to.equal(15);
-    });
-
-    it('should return offsets with after & last', async () => {
-      const resource = await orderedQuery.nth(10).run(connection);
-      const {
-        afterOffset,
-        beforeOffset,
-        startOffset,
-        endOffset,
-      } = await r.expr(
-        connectionArgsToOffsets(orderedQuery, {
-          after: pkToCursor(TABLE, resource.id),
-          last: 5,
-        })
-      ).run(connection);
-      expect(afterOffset).to.equal(11);
-      expect(beforeOffset).to.equal(19);
-      expect(startOffset).to.equal(15);
-      expect(endOffset).to.equal(19);
-    });
-
-    it('should return offsets with after & before', async () => {
-      const afterResource = await orderedQuery.nth(5).run(connection);
-      const beforeResource = await orderedQuery.nth(15).run(connection);
-      const {
-        afterOffset,
-        beforeOffset,
-        startOffset,
-        endOffset,
-      } = await r.expr(
-        connectionArgsToOffsets(orderedQuery, {
-          after: pkToCursor(TABLE, afterResource.id),
-          before: pkToCursor(TABLE, beforeResource.id),
-        })
-      ).run(connection);
-      expect(afterOffset).to.equal(6);
-      expect(beforeOffset).to.equal(14);
-      expect(startOffset).to.equal(6);
-      expect(endOffset).to.equal(14);
-    });
-  });
-
-  describe('connectionFieldFromTable', () => {
-    it('should return connection field', async () => {
+    before(() => {
       const { nodeInterface } = nodeDefinitionsFromTables({
         environment,
         graphQLTypes: () => ({
-          [table.tableName]: graphQLType,
+          [TABLE]: graphQLType,
         }),
       });
 
       const graphQLType = new GraphQLObjectType({
-        name: table.tableName,
+        name: TABLE,
         fields: getGraphQLFieldsFromTable(table),
         interfaces: [nodeInterface],
       });
@@ -379,45 +119,163 @@ describe('connection', () => {
         }),
       });
 
-      const Schema = new GraphQLSchema({
+      Schema = new GraphQLSchema({
         query: queryType,
       });
+    });
 
-      const query = `{
-        connection(first: 2) {
-          pageInfo {
-            hasNextPage
-            hasPreviousPage
-            endCursor
-            startCursor
-          }
-          edges {
-            cursor
-            node {
-              id
+    it('should resolve edges with first & after', async () => {
+      const data = await orderedQuery.slice(0, 4).coerceTo('array').run(connection);
+
+      const first = 2;
+      const after = pkToCursor(TABLE, data[0].id);
+
+      expect(
+        await graphql(Schema, `{
+          connection(first: ${first}, after: "${after}") {
+            pageInfo {
+              hasNextPage
+              hasPreviousPage
+              endCursor
+              startCursor
+            }
+            edges {
+              cursor
+              node {
+                id
+                ...on ${TABLE} {
+                  nth
+                }
+              }
             }
           }
-        }
-      }`;
-      const data = await orderedQuery.slice(0, 2).run(connection);
-      return expect(graphql(Schema, query)).to.become({
+        }`)
+      ).to.deep.equal({
         data: {
           connection: {
             pageInfo: {
-              hasNextPage: true,
               hasPreviousPage: false,
-              endCursor: pkToCursor(table.tableName, data[1].id),
-              startCursor: pkToCursor(table.tableName, data[0].id),
+              hasNextPage: true,
+              startCursor: pkToCursor(TABLE, data[1].id),
+              endCursor: pkToCursor(TABLE, data[2].id),
             },
             edges: [{
-              cursor: pkToCursor(table.tableName, data[0].id),
+              cursor: pkToCursor(TABLE, data[1].id),
               node: {
-                id: toGlobalId(table.tableName, data[0].id),
+                id: toGlobalId(TABLE, data[1].id),
+                nth: data[1].nth,
               },
             }, {
-              cursor: pkToCursor(table.tableName, data[1].id),
+              cursor: pkToCursor(TABLE, data[2].id),
               node: {
-                id: toGlobalId(table.tableName, data[1].id),
+                id: toGlobalId(TABLE, data[2].id),
+                nth: data[2].nth,
+              },
+            }],
+          },
+        },
+      });
+    });
+
+    it('should resolve edges with last & before', async () => {
+      const last = 2;
+      const before = pkToCursor(TABLE, `${TABLE_SIZE - 1}`);
+
+      expect(
+        await graphql(Schema, `{
+          connection(last: ${last}, before: "${before}") {
+            pageInfo {
+              hasNextPage
+              hasPreviousPage
+              endCursor
+              startCursor
+            }
+            edges {
+              cursor
+              node {
+                id
+                ...on ${TABLE} {
+                  nth
+                }
+              }
+            }
+          }
+        }`)
+      ).to.deep.equal({
+        data: {
+          connection: {
+            pageInfo: {
+              hasPreviousPage: true,
+              hasNextPage: false,
+              startCursor: pkToCursor(TABLE, `${TABLE_SIZE - 3}`),
+              endCursor: pkToCursor(TABLE, `${TABLE_SIZE - 2}`),
+            },
+            edges: [{
+              cursor: pkToCursor(TABLE, `${TABLE_SIZE - 3}`),
+              node: {
+                id: toGlobalId(TABLE, `${TABLE_SIZE - 3}`),
+                nth: TABLE_SIZE - 3,
+              },
+            }, {
+              cursor: pkToCursor(TABLE, `${TABLE_SIZE - 2}`),
+              node: {
+                id: toGlobalId(TABLE, `${TABLE_SIZE - 2}`),
+                nth: TABLE_SIZE - 2,
+              },
+            }],
+          },
+        },
+      });
+    });
+
+    it('should resolve edges with first & after && last & before', async () => {
+      const data = await orderedQuery.slice(0, 5).coerceTo('array').run(connection);
+
+      const last = 2;
+      const first = 2;
+      const after = pkToCursor(TABLE, data[0].id);
+      const before = pkToCursor(TABLE, data[4].id);
+
+      expect(
+        await graphql(Schema, `{
+          connection(first: ${first}, after: "${after}", last: ${last}, before: "${before}") {
+            pageInfo {
+              hasNextPage
+              hasPreviousPage
+              endCursor
+              startCursor
+            }
+            edges {
+              cursor
+              node {
+                id
+                ...on ${TABLE} {
+                  nth
+                }
+              }
+            }
+          }
+        }`)
+      ).to.deep.equal({
+        data: {
+          connection: {
+            pageInfo: {
+              hasPreviousPage: true,
+              hasNextPage: true,
+              startCursor: pkToCursor(TABLE, data[1].id),
+              endCursor: pkToCursor(TABLE, data[2].id),
+            },
+            edges: [{
+              cursor: pkToCursor(TABLE, data[1].id),
+              node: {
+                id: toGlobalId(TABLE, data[1].id),
+                nth: data[1].nth,
+              },
+            }, {
+              cursor: pkToCursor(TABLE, data[2].id),
+              node: {
+                id: toGlobalId(TABLE, data[2].id),
+                nth: data[2].nth,
               },
             }],
           },
