@@ -151,7 +151,7 @@ export function connectionField({
   graphQLType,
   filterFields,
   connection: getConnection,
-  query = table.query().orderBy(r.desc('createdAt')),
+  query = table.query().orderBy({ index: r.desc('createdAt') }),
 }) {
   const { connectionType } = connectionDefinitions({
     nodeType: graphQLType,
