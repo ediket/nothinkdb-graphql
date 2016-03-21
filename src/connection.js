@@ -195,7 +195,7 @@ export function connectionField({
       }
 
       const connection = await getConnection();
-      const rows = await query.run(connection);
+      const rows = await query.coerceTo('array').run(connection);
       const edgesLength = await beforeOffset.sub(afterOffset).add(1).run(connection);
       await connection.close();
 
