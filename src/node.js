@@ -1,33 +1,52 @@
-import r from 'rethinkdb';
 import _ from 'lodash';
 import {
-  nodeDefinitions,
+  nodeDefinitions as relayNodeDefinitions,
   fromGlobalId,
 } from 'graphql-relay';
 
-export function nodeDefinitionsFromTables(options = {}) {
-  const { environment, graphQLTypes } = options;
+export function nodeDefinitions({ connect }) {
+  const resolvers = {};
 
-  return nodeDefinitions(
-    async (globalId) => {
-      const connection = await r.connect({});
-      const { type, id } = fromGlobalId(globalId);
+  function hasType(typeName) {
+    return _.has(resolvers, typeName);
+  }
 
-      if (!environment.hasTable(type)) return null;
+  function registerType({ type, table }) {
+    if (hasType(type.name)) return;
+    resolvers[type.name] = { type, table };
+  }
 
-      const table = environment.getTable(type);
-      const resource = await table.get(id).run(connection);
-      if (_.isNull(resource)) return null;
+  async function resolveObj(globalId) {
+    const { type: typeName, id } = fromGlobalId(globalId);
 
-      await connection.close();
+    if (!hasType(typeName)) return null;
 
-      resource._dataType = type;
-      return resource;
-    },
-    (obj) => {
-      if (_.isNull(obj)) return null;
-      const graphQLType = graphQLTypes()[obj._dataType];
-      return graphQLType;
-    }
-  );
+    const { table } = resolvers[typeName];
+
+    const connection = await connect();
+    const obj = await table.get(id).run(connection);
+    await connection.close();
+
+    if (_.isNull(obj)) return null;
+
+    obj._dataType = typeName;
+    return obj;
+  }
+
+  function resolveType(obj) {
+    if (_.isNull(obj)) return null;
+    const { type } = resolvers[obj._dataType];
+    return type;
+  }
+
+  const {
+    nodeInterface,
+    nodeField,
+  } = relayNodeDefinitions(resolveObj, resolveType);
+
+  return {
+    registerType,
+    nodeInterface,
+    nodeField,
+  };
 }

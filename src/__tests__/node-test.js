@@ -14,7 +14,7 @@ import {
   getGraphQLFieldsFromTable,
 } from '../field';
 import {
-  nodeDefinitionsFromTables,
+  nodeDefinitions,
 } from '../node';
 
 const USER_ID1 = '1';
@@ -43,17 +43,19 @@ describe('node', () => {
       userTable.create({ id: USER_ID1, name: 'John Doe' })
     ).run(connection);
 
-    const { nodeField, nodeInterface } = nodeDefinitionsFromTables({
-      environment,
-      graphQLTypes: () => ({
-        [userTable.tableName]: userType,
-      }),
+    const { nodeField, nodeInterface, registerType } = nodeDefinitions({
+      connect: () => r.connect({}),
     });
 
     const userType = new GraphQLObjectType({
       name: userTable.tableName,
       fields: getGraphQLFieldsFromTable(userTable),
       interfaces: [nodeInterface],
+    });
+
+    registerType({
+      table: userTable,
+      type: userType,
     });
 
     const queryType = new GraphQLObjectType({
@@ -73,10 +75,11 @@ describe('node', () => {
     await connection.close();
   });
 
-  describe('nodeDefinitionsFromTables', () => {
+  describe('nodeDefinitions', () => {
     it('should return nodeField, nodeInterface property', () => {
-      expect(nodeDefinitionsFromTables())
-        .to.have.all.keys(['nodeField', 'nodeInterface']);
+      expect(
+        nodeDefinitions({ connect: () => r.connect({}) })
+      ).to.have.all.keys(['nodeField', 'nodeInterface', 'registerType']);
     });
 
     it(`gets the correct ID for users`, () => {
