@@ -43,7 +43,9 @@ describe('node', () => {
       userTable.create({ id: USER_ID1, name: 'John Doe' })
     ).run(connection);
 
-    const { nodeField, nodeInterface, registerType } = nodeDefinitions();
+    const { nodeField, nodeInterface, registerType } = nodeDefinitions({
+      connect: () => r.connect({}),
+    });
 
     const userType = new GraphQLObjectType({
       name: userTable.tableName,
@@ -52,13 +54,8 @@ describe('node', () => {
     });
 
     registerType({
+      table: userTable,
       type: userType,
-      resolve: async (id) => {
-        const _connection = await r.connect();
-        const user = await userTable.get(id).run(_connection);
-        await _connection.close();
-        return user;
-      },
     });
 
     const queryType = new GraphQLObjectType({
@@ -80,8 +77,9 @@ describe('node', () => {
 
   describe('nodeDefinitions', () => {
     it('should return nodeField, nodeInterface property', () => {
-      expect(nodeDefinitions())
-        .to.have.all.keys(['nodeField', 'nodeInterface', 'registerType']);
+      expect(
+        nodeDefinitions({ connect: () => r.connect({}) })
+      ).to.have.all.keys(['nodeField', 'nodeInterface', 'registerType']);
     });
 
     it(`gets the correct ID for users`, () => {

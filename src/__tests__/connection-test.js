@@ -94,7 +94,9 @@ describe('connection', () => {
     let Schema;
 
     before(() => {
-      const { nodeInterface, registerType } = nodeDefinitions();
+      const { nodeInterface, registerType } = nodeDefinitions({
+        connect: () => r.connect({}),
+      });
 
       const graphQLType = new GraphQLObjectType({
         name: TABLE,
@@ -103,13 +105,8 @@ describe('connection', () => {
       });
 
       registerType({
+        table,
         type: graphQLType,
-        resolve: async (id) => {
-          const _connection = await r.connect();
-          const obj = await graphQLType.get(id).run(_connection);
-          await _connection.close();
-          return obj;
-        },
       });
 
       const queryType = new GraphQLObjectType({

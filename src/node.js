@@ -4,20 +4,16 @@ import {
   fromGlobalId,
 } from 'graphql-relay';
 
-export function nodeDefinitions() {
+export function nodeDefinitions({ connect }) {
   const resolvers = {};
 
   function hasType(typeName) {
     return _.has(resolvers, typeName);
   }
 
-  function registerType({ type, resolve }) {
+  function registerType({ type, table }) {
     if (hasType(type.name)) return;
-
-    resolvers[type.name] = {
-      type,
-      resolve,
-    };
+    resolvers[type.name] = { type, table };
   }
 
   async function resolveObj(globalId) {
@@ -25,9 +21,12 @@ export function nodeDefinitions() {
 
     if (!hasType(typeName)) return null;
 
-    const { resolve } = resolvers[typeName];
+    const { table } = resolvers[typeName];
 
-    const obj = await resolve(id);
+    const connection = await connect();
+    const obj = await table.get(id).run(connection);
+    await connection.close();
+
     if (_.isNull(obj)) return null;
 
     obj._dataType = typeName;
