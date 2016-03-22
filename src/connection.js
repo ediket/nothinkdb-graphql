@@ -90,7 +90,7 @@ export function connectionField({
   table,
   graphQLType,
   filterFields,
-  connection: getConnection,
+  connect,
   query = table.query().orderBy({ index: r.desc('createdAt') }),
 }) {
   const { connectionType } = connectionDefinitions({
@@ -125,7 +125,7 @@ export function connectionField({
         _query = applyFiltersToQuery(_query, filters);
       }
 
-      const connection = await getConnection();
+      const connection = await connect();
 
       _query = applyCursorsToQuery(_query, { after, before });
 

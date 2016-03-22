@@ -116,7 +116,7 @@ describe('connection', () => {
             table,
             graphQLType,
             query: orderedQuery,
-            connection: () => r.connect(),
+            connect: () => r.connect(),
           }),
         }),
       });
