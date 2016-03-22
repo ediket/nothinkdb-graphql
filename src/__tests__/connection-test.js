@@ -23,7 +23,7 @@ import {
   getGraphQLFieldsFromTable,
 } from '../field';
 import {
-  nodeDefinitionsFromTables,
+  nodeDefinitions,
 } from '../node';
 
 const TABLE = 'ConnectionTest';
@@ -94,17 +94,22 @@ describe('connection', () => {
     let Schema;
 
     before(() => {
-      const { nodeInterface } = nodeDefinitionsFromTables({
-        environment,
-        graphQLTypes: () => ({
-          [TABLE]: graphQLType,
-        }),
-      });
+      const { nodeInterface, registerType } = nodeDefinitions();
 
       const graphQLType = new GraphQLObjectType({
         name: TABLE,
         fields: getGraphQLFieldsFromTable(table),
         interfaces: [nodeInterface],
+      });
+
+      registerType({
+        type: graphQLType,
+        resolve: async (id) => {
+          const _connection = await r.connect();
+          const obj = await graphQLType.get(id).run(_connection);
+          await _connection.close();
+          return obj;
+        },
       });
 
       const queryType = new GraphQLObjectType({
