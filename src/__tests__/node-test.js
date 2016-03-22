@@ -19,7 +19,7 @@ import {
 
 const USER_ID1 = '1';
 
-describe.only('node', () => {
+describe('node', () => {
   let connection;
   let schema;
   let userTable;
