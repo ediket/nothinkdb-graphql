@@ -115,7 +115,7 @@ describe('connection', () => {
           connection: connectionField({
             table,
             graphQLType,
-            query: orderedQuery,
+            getQuery: (/* root, args, context */) => orderedQuery,
             connect: () => r.connect(),
           }),
         }),

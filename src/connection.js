@@ -7,13 +7,8 @@ import {
   connectionArgs,
   connectionDefinitions,
 } from 'graphql-relay';
-import { GraphQLInputObjectType } from 'graphql';
 import { GraphQLError } from 'graphql/error';
 import { base64, unbase64 } from './base64';
-import {
-  getFieldsFromContext,
-  getRelationsFromFields,
-} from './context';
 
 
 const PREFIX = 'arrayconnection:';
@@ -60,11 +55,6 @@ export function assertConnectionArgs({ first, last }) {
   }
 }
 
-export function applyFiltersToQuery(query, filters) {
-  return query.filter(filters);
-}
-
-
 // https://facebook.github.io/relay/graphql/connections.htm#ApplyCursorsToEdges()
 export function applyCursorsToQuery(query, { after, before }) {
   return query.slice(
@@ -89,9 +79,9 @@ export function applyLimitsToQuery(query, { first, last }) {
 export function connectionField({
   table,
   graphQLType,
-  filterFields,
   connect,
-  query = table.query().orderBy({ index: r.desc('createdAt') }),
+  args: optionArgs,
+  getQuery = () => table.query().orderBy({ index: r.desc('createdAt') }),
 }) {
   const { connectionType } = connectionDefinitions({
     nodeType: graphQLType,
@@ -100,44 +90,25 @@ export function connectionField({
 
   return {
     type: connectionType,
-    args: Object.assign({
-      ...(filterFields ? {
-        filters: {
-          name: `${name}Filters`,
-          type: new GraphQLInputObjectType({
-            name: `${name}FilterFields`,
-            fields: filterFields,
-          }),
-        },
-      } : {}),
-    }, connectionArgs),
+    args: {
+      ...optionArgs,
+      ...connectionArgs,
+    },
     resolve: async (root, args, context) => {
-      const { after, before, first, last, filters } = args;
+      const { after, before, first, last } = args;
       assertConnectionArgs({ first, last });
 
-      const relations = getRelationsFromFields(
-        getFieldsFromContext(context).edges.node
-      );
-
-      let _query = query;
-
-      if (_.isObject(filters) && !_.isEmpty(filters)) {
-        _query = applyFiltersToQuery(_query, filters);
-      }
+      let query = getQuery(root, args, context);
 
       const connection = await connect();
 
-      _query = applyCursorsToQuery(_query, { after, before });
+      query = applyCursorsToQuery(query, { after, before });
 
-      const edgesLength = await _query.count().run(connection);
+      const edgesLength = await query.count().run(connection);
 
-      _query = applyLimitsToQuery(_query, { first, last });
+      query = applyLimitsToQuery(query, { first, last });
 
-      if (_.isObject(relations) && !_.isEmpty(relations)) {
-        _query = table.withJoin(_query, relations);
-      }
-
-      const rows = await _query.coerceTo('array').run(connection);
+      const rows = await query.coerceTo('array').run(connection);
       await connection.close();
 
       const edges = rows.map(row => dataToEdge(table, row));
