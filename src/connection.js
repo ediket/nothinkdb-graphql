@@ -81,11 +81,12 @@ export function connectionField({
   graphQLType,
   connect,
   args: optionArgs,
+  name = graphQLType.name,
   getQuery = () => table.query().orderBy({ index: r.desc('createdAt') }),
 }) {
   const { connectionType } = connectionDefinitions({
     nodeType: graphQLType,
-    name: graphQLType.name,
+    name,
   });
 
   return {
