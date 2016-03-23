@@ -99,7 +99,7 @@ export function connectionField({
       const { after, before, first, last } = args;
       assertConnectionArgs({ first, last });
 
-      let query = getQuery(root, args, context);
+      let query = await getQuery(root, args, context);
 
       const connection = await connect();
 
