@@ -126,6 +126,20 @@ describe('connection', () => {
       });
     });
 
+    it('should throw error first or after is not given', async () => {
+      expect(
+        await graphql(Schema, `{
+          connection {
+            edges {
+              node {
+                id
+              }
+            }
+          }
+        }`)
+      ).to.have.property('errors').is.not.empty;
+    });
+
     it('should resolve edges with first & after', async () => {
       const data = await orderedQuery.slice(0, 4).coerceTo('array').run(connection);
 

@@ -50,8 +50,11 @@ export function cursorToOffset(query, cursor) {
 }
 
 export function assertConnectionArgs({ first, last }) {
+  if (!_.isNumber(first) && !_.isNumber(last)) {
+    throw new GraphQLError(`'first' or 'last' should be given.`);
+  }
   if (_.some([first, last], (amount) => _.isNumber(amount) && amount <= 0)) {
-    throw new GraphQLError('first and last must more than 0');
+    throw new GraphQLError(`'first' and 'last' must more than 0`);
   }
 }
 
