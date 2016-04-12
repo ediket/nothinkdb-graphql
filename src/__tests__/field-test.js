@@ -55,7 +55,7 @@ describe('table', () => {
         object: {
           string: 'string',
         },
-        enum: 'red',
+        enum: 'green',
       };
 
       const Schema = new GraphQLSchema({
