@@ -2,10 +2,7 @@ language: node_js
 node_js:
   - "4.3"
 before_install:
-  - source /etc/lsb-release && echo "deb http://download.rethinkdb.com/apt $DISTRIB_CODENAME main" | sudo tee /etc/apt/sources.list.d/rethinkdb.list
-  - wget -qO- https://download.rethinkdb.com/apt/pubkey.gpg | sudo apt-key add -
-  - sudo apt-get update
-  - sudo apt-get install rethinkdb=2.2.5~0precise_amd64
+  - wget https://download.rethinkdb.com/dist/rethinkdb-2.2.6.tgz && tar xf rethinkdb-2.2.6.tgz && cd rethinkdb-2.2.6 && ./configure --allow-fetch && make
   - rethinkdb --version
   - rethinkdb --daemon
 script:
