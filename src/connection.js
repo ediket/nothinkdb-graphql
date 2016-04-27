@@ -112,7 +112,7 @@ export function connectionField({
       const edgesLength = await query.count().run(connection);
 
       query = applyLimitsToQuery(query, { first, last });
-      query = afterQuery(query);
+      query = afterQuery(query, root, args, context);
 
       const rows = await query.coerceTo('array').run(connection);
       await connection.close();

@@ -1,6 +1,6 @@
 {
   "name": "nothinkdb-graphql",
-  "version": "0.1.16",
+  "version": "0.1.17",
   "description": "Graphql & Relay for rethinkdb via nothinkdb",
   "main": "lib",
   "files": [
