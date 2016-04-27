@@ -86,6 +86,7 @@ export function connectionField({
   args: optionArgs,
   name = graphQLType.name,
   getQuery = () => table.query().orderBy({ index: r.desc('createdAt') }),
+  afterQuery = query => query,
 }) {
   const { connectionType } = connectionDefinitions({
     nodeType: graphQLType,
@@ -111,6 +112,7 @@ export function connectionField({
       const edgesLength = await query.count().run(connection);
 
       query = applyLimitsToQuery(query, { first, last });
+      query = afterQuery(query);
 
       const rows = await query.coerceTo('array').run(connection);
       await connection.close();
