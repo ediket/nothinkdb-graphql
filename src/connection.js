@@ -1,4 +1,5 @@
 /* eslint no-param-reassign: 0 */
+import assert from 'assert';
 import _ from 'lodash';
 import r from 'rethinkdb';
 import {
@@ -85,7 +86,14 @@ export function connectionField({
   connect,
   args: optionArgs,
   name = graphQLType.name,
-  getQuery = () => table.query().orderBy({ index: r.desc('createdAt') }),
+  getQuery = (/* root, args, context */) => table.query().orderBy({ index: r.desc('createdAt') }),
+  runQuery = async (query) => {
+    assert(_.isFunction(connect), 'connect should be function');
+    const connection = await connect();
+    const result = await query.run(connection);
+    connection.close();
+    return result;
+  },
   afterQuery = query => query,
 }) {
   const { connectionType } = connectionDefinitions({
@@ -104,18 +112,12 @@ export function connectionField({
       assertConnectionArgs({ first, last });
 
       let query = await getQuery(root, args, context);
-
-      const connection = await connect();
-
       query = applyCursorsToQuery(query, { after, before });
-
-      const edgesLength = await query.count().run(connection);
-
+      const edgesLength = await runQuery(query.count());
       query = applyLimitsToQuery(query, { first, last });
       query = afterQuery(query, root, args, context);
-
-      const rows = await query.coerceTo('array').run(connection);
-      await connection.close();
+      query = query.coerceTo('array');
+      const rows = await runQuery(query);
 
       const edges = rows.map(row => dataToEdge(table, row));
       const firstEdge = _.head(edges);
