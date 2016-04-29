@@ -80,12 +80,11 @@ export function applyLimitsToQuery(query, { first, last }) {
   return query;
 }
 
-export function connectionField({
+export function fieldFromConnectionType({
+  connectionType,
   table,
-  graphQLType,
   connect,
   args: optionArgs,
-  name = graphQLType.name,
   getQuery = (/* root, args, context */) => table.query().orderBy({ index: r.desc('createdAt') }),
   runQuery = async (query) => {
     assert(_.isFunction(connect), 'connect should be function');
@@ -96,11 +95,6 @@ export function connectionField({
   },
   afterQuery = query => query,
 }) {
-  const { connectionType } = connectionDefinitions({
-    nodeType: graphQLType,
-    name,
-  });
-
   return {
     type: connectionType,
     args: {
@@ -136,4 +130,21 @@ export function connectionField({
       };
     },
   };
+}
+
+export function connectionField(options = {}) {
+  const {
+    graphQLType,
+    name = graphQLType.name,
+  } = options;
+
+  const { connectionType } = connectionDefinitions({
+    nodeType: graphQLType,
+    name,
+  });
+
+  return fieldFromConnectionType({
+    ...options,
+    connectionType,
+  });
 }
