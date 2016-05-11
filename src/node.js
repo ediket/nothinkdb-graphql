@@ -16,14 +16,14 @@ export function nodeDefinitions({ connect }) {
     resolvers[type.name] = { type, table, assert };
   }
 
-  async function resolveObj(globalId) {
+  async function resolveObj(globalId, context, info) {
     const { type, id } = fromGlobalId(globalId);
 
     if (!hasType(type)) return null;
 
     const { table, assert } = resolvers[type];
 
-    await assert(id);
+    await assert(id, context, info);
 
     const connection = await connect();
     const obj = await table.get(id).run(connection);
