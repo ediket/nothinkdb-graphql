@@ -7,21 +7,23 @@ import {
 export function nodeDefinitions({ connect }) {
   const resolvers = {};
 
-  function hasType(typeName) {
-    return _.has(resolvers, typeName);
+  function hasType(type) {
+    return _.has(resolvers, type);
   }
 
-  function registerType({ type, table }) {
+  function registerType({ type, table, assert = async () => {} }) {
     if (hasType(type.name)) return;
-    resolvers[type.name] = { type, table };
+    resolvers[type.name] = { type, table, assert };
   }
 
   async function resolveObj(globalId) {
-    const { type: typeName, id } = fromGlobalId(globalId);
+    const { type, id } = fromGlobalId(globalId);
 
-    if (!hasType(typeName)) return null;
+    if (!hasType(type)) return null;
 
-    const { table } = resolvers[typeName];
+    const { table, assert } = resolvers[type];
+
+    await assert(id);
 
     const connection = await connect();
     const obj = await table.get(id).run(connection);
@@ -29,7 +31,7 @@ export function nodeDefinitions({ connect }) {
 
     if (_.isNull(obj)) return null;
 
-    obj._dataType = typeName;
+    obj._dataType = type;
     return obj;
   }
 
