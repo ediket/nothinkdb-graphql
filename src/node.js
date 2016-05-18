@@ -1,19 +1,34 @@
+import assert from 'assert';
 import _ from 'lodash';
 import {
   nodeDefinitions as relayNodeDefinitions,
   fromGlobalId,
 } from 'graphql-relay';
 
-export function nodeDefinitions({ connect }) {
+export function nodeDefinitions({
+  connect,
+  runQuery = async (query) => {
+    assert(_.isFunction(connect), 'connect should be function');
+    const connection = await connect();
+    const result = await query.run(connection);
+    connection.close();
+    return result;
+  },
+}) {
   const resolvers = {};
 
   function hasType(type) {
     return _.has(resolvers, type);
   }
 
-  function registerType({ type, table, assert = async () => {} }) {
+  function registerType({
+    type,
+    table,
+    assert: assertHook = async (/* id, context, info */) => {},
+    afterQuery = query => query,
+  }) {
     if (hasType(type.name)) return;
-    resolvers[type.name] = { type, table, assert };
+    resolvers[type.name] = { type, table, assertHook, afterQuery };
   }
 
   async function resolveObj(globalId, context, info) {
@@ -21,13 +36,13 @@ export function nodeDefinitions({ connect }) {
 
     if (!hasType(type)) return null;
 
-    const { table, assert } = resolvers[type];
+    const { table, assertHook, afterQuery } = resolvers[type];
 
-    await assert(id, context, info);
+    await assertHook(id, context, info);
 
-    const connection = await connect();
-    const obj = await table.get(id).run(connection);
-    await connection.close();
+    let query = table.get(id);
+    query = afterQuery(query, context, info);
+    const obj = await runQuery(query);
 
     if (_.isNull(obj)) return null;
 
