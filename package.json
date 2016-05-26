@@ -41,7 +41,7 @@
     "eslint": "^1.10.3",
     "eslint-config-airbnb": "^0.1.0",
     "mocha": "^2.4.5",
-    "nothinkdb": "^0.5.3",
+    "nothinkdb": "latest",
     "rethinkdb": "2.2.3",
     "rimraf": "^2.5.1"
   },
