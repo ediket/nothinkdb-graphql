@@ -28,7 +28,7 @@ function isJoiCollection(schema) {
 }
 
 export function getGraphQLFieldsFromTable(table) {
-  const schema = table.schema();
+  const schema = table.getSchema();
 
   return {
     ...getGraphQLfieldsFromSchema(_.omit(schema, table.pk)),
