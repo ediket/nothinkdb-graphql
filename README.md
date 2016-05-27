@@ -15,3 +15,9 @@ npm install -S nothinkdb-graphql  # rethinkdb nothinkdb
 # Usage
 
 See [Examples](https://github.com/ediket/nothinkdb-graphql/tree/master/examples)
+
+Related Links
+------------
+- [rethinkdb](https://github.com/rethinkdb/rethinkdb)
+- [nothinkdb](https://github.com/ediket/nothinkdb)
+- [graphql-relay-rethinkdb-example](https://github.com/ediket/graphql-relay-rethinkdb-example)
