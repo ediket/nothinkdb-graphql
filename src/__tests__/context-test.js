@@ -38,8 +38,8 @@ describe('context', () => {
         fields: {
           foo: {
             type: Foo,
-            resolve: (root, args, context) => {
-              fields = getFieldsFromContext(context);
+            resolve: (object, args, context, info) => {
+              fields = getFieldsFromContext(info);
             },
           },
         },
@@ -94,9 +94,9 @@ describe('context', () => {
         fields: {
           foo: {
             type: Foo,
-            resolve: (root, args, context) => {
+            resolve: (root, args, context, info) => {
               relations = getRelationsFromFields(
-                getFieldsFromContext(context)
+                getFieldsFromContext(info)
               );
             },
           },

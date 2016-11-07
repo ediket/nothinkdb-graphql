@@ -85,7 +85,7 @@ export function fieldFromConnectionType({
   table,
   connect,
   args: optionArgs,
-  getQuery = (/* root, args, context */) => table.query().orderBy({ index: r.desc('createdAt') }),
+  getQuery = (/* root, args, context, info */) => table.query().orderBy({ index: r.desc('createdAt') }),
   runQuery = async (query) => {
     assert(_.isFunction(connect), 'connect should be function');
     const connection = await connect();
@@ -101,15 +101,15 @@ export function fieldFromConnectionType({
       ...optionArgs,
       ...connectionArgs,
     },
-    resolve: async (root, args, context) => {
+    resolve: async (root, args, context, info) => {
       const { after, before, first, last } = args;
       assertConnectionArgs({ first, last });
 
-      let query = await getQuery(root, args, context);
+      let query = await getQuery(root, args, context, info);
       query = applyCursorsToQuery(query, { after, before });
       const edgesLength = await runQuery(query.count());
       query = applyLimitsToQuery(query, { first, last });
-      query = afterQuery(query, root, args, context);
+      query = afterQuery(query, root, args, context, info);
       query = query.coerceTo('array');
       const rows = await runQuery(query);
 
@@ -122,10 +122,8 @@ export function fieldFromConnectionType({
         pageInfo: {
           startCursor: firstEdge ? firstEdge.cursor : null,
           endCursor: lastEdge ? lastEdge.cursor : null,
-          hasPreviousPage: last !== undefined ?
-            edgesLength > last : false,
-          hasNextPage: first !== undefined ?
-            edgesLength > first : false,
+          hasPreviousPage: last !== undefined ? edgesLength > last : false,
+          hasNextPage: first !== undefined ? edgesLength > first : false,
         },
       };
     },

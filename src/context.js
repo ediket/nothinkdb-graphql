@@ -1,12 +1,12 @@
 /* eslint no-param-reassign: 0, no-shadow: 0 */
 import _ from 'lodash';
 
-export function getFieldsFromContext(context, fieldASTs) {
-  if (!context) {
+export function getFieldsFromContext(info, fieldASTs) {
+  if (!info) {
     return {};
   }
 
-  fieldASTs = fieldASTs || context.fieldASTs;
+  fieldASTs = fieldASTs || info.fieldASTs;
 
   // for recursion
   // Fragments doesn't have many sets
@@ -30,7 +30,7 @@ export function getFieldsFromContext(context, fieldASTs) {
 
     switch (kind) {
     case 'Field':
-      const fields = getFieldsFromContext(context, ast);
+      const fields = getFieldsFromContext(info, ast);
       return {
         ...list,
         [name.value]: !_.isEmpty(fields) ? fields : true,
@@ -38,12 +38,12 @@ export function getFieldsFromContext(context, fieldASTs) {
     case 'InlineFragment':
       return {
         ...list,
-        ...getFieldsFromContext(context, ast),
+        ...getFieldsFromContext(info, ast),
       };
     case 'FragmentSpread':
       return {
         ...list,
-        ...getFieldsFromContext(context, context.fragments[name.value]),
+        ...getFieldsFromContext(info, info.fragments[name.value]),
       };
     default:
       throw new Error('Unsuported query selection');

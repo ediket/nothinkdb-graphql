@@ -20,7 +20,7 @@ import {
 
 const USER_ID1 = '1';
 
-describe.only('node - test', () => {
+describe('node - test', () => {
   let connection;
   let userTable;
 
@@ -196,6 +196,7 @@ describe.only('node - test', () => {
 
       schema = new GraphQLSchema({
         query: queryType,
+        types: [userType],
       });
     });
 
@@ -320,6 +321,7 @@ describe.only('node - test', () => {
 
       schema = new GraphQLSchema({
         query: queryType,
+        types: [userType],
       });
     });
 
@@ -370,6 +372,7 @@ describe.only('node - test', () => {
 
       schema = new GraphQLSchema({
         query: queryType,
+        types: [userType],
       });
     });
 
