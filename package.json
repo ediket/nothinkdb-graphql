@@ -1,12 +1,13 @@
 {
   "name": "nothinkdb-graphql",
-  "version": "0.1.24",
+  "version": "0.2.0",
   "description": "Graphql & Relay for rethinkdb via nothinkdb",
   "main": "lib",
   "files": [
     "lib"
   ],
   "scripts": {
+    "release": "sh ./scripts/release.sh",
     "test": "mocha --require ./scripts/mocha-require.js --timeout 20000 ./src/**/__tests__/*-test.js",
     "build": "babel --ignore *-test.js -d lib src",
     "clean": "rimraf lib",
