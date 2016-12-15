@@ -47,8 +47,8 @@
     "rimraf": "^2.5.1"
   },
   "dependencies": {
-    "graphql": "^0.7.2",
-    "graphql-relay": "^0.4.3",
+    "graphql": ">=0.8.2",
+    "graphql-relay": ">=0.4.4",
     "joi": "^8.0.1",
     "lodash": "^4.4.0"
   }

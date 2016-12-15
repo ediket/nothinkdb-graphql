@@ -1,16 +1,16 @@
 /* eslint no-param-reassign: 0, no-shadow: 0 */
 import _ from 'lodash';
 
-export function getFieldsFromContext(info, fieldASTs) {
+export function getFieldsFromContext(info, fieldNodes) {
   if (!info) {
     return {};
   }
 
-  fieldASTs = fieldASTs || info.fieldASTs;
+  fieldNodes = fieldNodes || info.fieldNodes;
 
   // for recursion
   // Fragments doesn't have many sets
-  let asts = fieldASTs;
+  let asts = fieldNodes;
   if (!Array.isArray(asts)) {
     asts = [asts];
   }
