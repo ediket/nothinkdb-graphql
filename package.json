@@ -31,8 +31,8 @@
   },
   "homepage": "https://github.com/ediket/nothinkdb-graphql#readme",
   "peerDependencies": {
-    "rethinkdb": "^2.x",
-    "nothinkdb": "^0.x"
+    "nothinkdb": "^0.x",
+    "rethinkdb": "^2.x"
   },
   "devDependencies": {
     "babel": "^5.8.35",
@@ -47,8 +47,8 @@
     "rimraf": "^2.5.1"
   },
   "dependencies": {
-    "graphql": ">=0.8.2",
-    "graphql-relay": ">=0.4.4",
+    "graphql": "^0.10.3",
+    "graphql-relay": "^0.5.2",
     "joi": "^8.0.1",
     "lodash": "^4.4.0"
   }

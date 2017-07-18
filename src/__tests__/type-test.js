@@ -10,7 +10,7 @@ import {
   GraphQLJoiType,
 } from '../type';
 
-describe('type', () => {
+describe.skip('type', () => {
   describe('GraphQLJoiType', () => {
     it('should create graphql type with joi schema', async () => {
       const GraphQLEmailType = new GraphQLJoiType({
