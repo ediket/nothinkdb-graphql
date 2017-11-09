@@ -1262,20 +1262,20 @@ jade@0.26.3:
     commander "0.6.1"
     mkdirp "0.3.0"
 
-joi@^7.2.3:
-  version "7.3.0"
-  resolved "https://registry.yarnpkg.com/joi/-/joi-7.3.0.tgz#4d9c9f181830444083665b5b6cd5b8ca6779a5e9"
+joi@8.0.1:
+  version "8.0.1"
+  resolved "https://registry.yarnpkg.com/joi/-/joi-8.0.1.tgz#c9f526e623208df42817941819a3cdb59be29ee7"
   dependencies:
     hoek "3.x.x"
     isemail "2.x.x"
     moment "2.x.x"
     topo "2.x.x"
 
-joi@^8.0.1:
-  version "8.4.2"
-  resolved "https://registry.yarnpkg.com/joi/-/joi-8.4.2.tgz#bd7774658fe99058d8994ed1d4b9962484ebb859"
+joi@^7.2.3:
+  version "7.3.0"
+  resolved "https://registry.yarnpkg.com/joi/-/joi-7.3.0.tgz#4d9c9f181830444083665b5b6cd5b8ca6779a5e9"
   dependencies:
-    hoek "4.x.x"
+    hoek "3.x.x"
     isemail "2.x.x"
     moment "2.x.x"
     topo "2.x.x"
