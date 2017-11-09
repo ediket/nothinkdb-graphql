@@ -25,10 +25,11 @@ export function nodeDefinitions({
     type,
     table,
     assert: assertHook = async (/* id, context, info */) => {},
+    resolve: resolveHook = async (/* obj, context, info */) => {},
     afterQuery = async query => query,
   }) {
     if (hasType(type.name)) return;
-    resolvers[type.name] = { type, table, assertHook, afterQuery };
+    resolvers[type.name] = { type, table, assertHook, resolveHook, afterQuery };
   }
 
   async function resolveObj(globalId, context, info) {
@@ -36,7 +37,7 @@ export function nodeDefinitions({
 
     if (!hasType(type)) return null;
 
-    const { table, assertHook, afterQuery } = resolvers[type];
+    const { table, assertHook, resolveHook, afterQuery } = resolvers[type];
 
     await assertHook(id, context, info);
 
@@ -46,6 +47,7 @@ export function nodeDefinitions({
 
     if (_.isNull(obj)) return null;
 
+    await resolveHook(obj, context, info);
     obj._dataType = type;
     return obj;
   }
