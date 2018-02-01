@@ -338,6 +338,77 @@ describe('node - test', () => {
     });
   });
 
+  describe(`nodeDefinitions - registerType with 'resolve' option`, () => {
+    const MOCK_USER_ID = '2';
+    let schema;
+
+    before(async () => {
+      const { nodeField, nodeInterface, registerType } = nodeDefinitions({
+        connect: () => r.connect({}),
+      });
+
+      const userType = new GraphQLObjectType({
+        name: userTable.tableName,
+        fields: getGraphQLFieldsFromTable(userTable),
+        interfaces: [nodeInterface],
+      });
+
+      registerType({
+        table: userTable,
+        type: userType,
+        resolve: () => ({ id: MOCK_USER_ID }),
+      });
+
+      const queryType = new GraphQLObjectType({
+        name: 'Query',
+        fields: () => ({
+          node: nodeField,
+        }),
+      });
+
+      schema = new GraphQLSchema({
+        query: queryType,
+        types: [userType],
+      });
+    });
+
+    it(`should have outcome influencd by resolve.`, async () => {
+      const globalId = toGlobalId(userTable.tableName, USER_ID1);
+      const mockGlobalId = toGlobalId(userTable.tableName, MOCK_USER_ID);
+      const query = `{
+        node(id: "${globalId}") {
+          id
+          __typename
+        }
+      }`;
+      const expected = {
+        node: {
+          id: mockGlobalId,
+          __typename: userTable.tableName,
+        },
+      };
+      return expect(graphql(schema, query)).to.become({data: expected});
+    });
+
+    it(`should still have its outcome influencd by resolve if node does not exist.`, async () => {
+      const nonExistingId = toGlobalId(userTable.tableName, 'USER_ID1');
+      const mockGlobalId = toGlobalId(userTable.tableName, MOCK_USER_ID);
+      const query = `{
+        node(id: "${nonExistingId}") {
+          id
+          __typename
+        }
+      }`;
+      const expected = {
+        node: {
+          id: mockGlobalId,
+          __typename: userTable.tableName,
+        },
+      };
+      return expect(graphql(schema, query)).to.become({data: expected});
+    });
+  });
+
   describe(`nodeDefinitions - registerType with 'afterQuery' option`, () => {
     let schema;
 

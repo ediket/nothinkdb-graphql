@@ -25,7 +25,7 @@ export function nodeDefinitions({
     type,
     table,
     assert: assertHook = async (/* id, context, info */) => {},
-    resolve: resolveHook = async (/* obj, context, info */) => {},
+    resolve: resolveHook = async (obj, /* context, info */) => obj,
     afterQuery = async query => query,
   }) {
     if (hasType(type.name)) return;
@@ -43,11 +43,11 @@ export function nodeDefinitions({
 
     let query = table.get(id);
     query = await afterQuery(query, context, info);
-    const obj = await runQuery(query);
+    let obj = await runQuery(query);
+
+    obj = await resolveHook(obj, context, info);
 
     if (_.isNull(obj)) return null;
-
-    await resolveHook(obj, context, info);
     obj._dataType = type;
     return obj;
   }
